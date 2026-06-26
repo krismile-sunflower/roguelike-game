@@ -1,0 +1,19 @@
+# Godot 项目文件
+*.godot
+*.tscn
+*.tres
+*.res
+
+# GDScript 脚本
+*.gd
+
+# 导出的项目
+export/
+
+# 缓存
+.cache/
+.editorimportcache/
+
+# 系统文件
+.DS_Store
+Thumbs.db
