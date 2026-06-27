@@ -3,200 +3,200 @@
 [ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_enemy"]
-size = Vector2(32, 32)
+	size = Vector2(32, 32)
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_collect"]
-radius = 12
+	radius = 12
 
 [node name="MainScene" type="Node2D"]
 
 [node name="Player" type="CharacterBody2D" parent="."]
-position = Vector2(640, 360)
-collision_layer = 1
-collision_mask = 2
+	position = Vector2(640, 360)
+	collision_layer = 1
+	collision_mask = 2
 
 [node name="Sprite2D" type="Sprite2D" parent="Player"]
-offset = Vector2(16, 24)
+	offset = Vector2(16, 24)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
-position = Vector2(16, 24)
-shape = SubResource("RectangleShape2D_enemy")
+	position = Vector2(16, 24)
+	shape = SubResource("RectangleShape2D_enemy")
 
 [node name="Collectible1" type="Area2D" parent="."]
-position = Vector2(300, 200)
-collision_layer = 4
-collision_mask = 1
+	position = Vector2(300, 200)
+	collision_layer = 4
+	collision_mask = 1
 
 [node name="Sprite2D" type="Sprite2D" parent="Collectible1"]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Collectible1"]
-shape = SubResource("CircleShape2D_collect")
+	shape = SubResource("CircleShape2D_collect")
 
 [node name="Collectible2" type="Area2D" parent="."]
-position = Vector2(900, 400)
-collision_layer = 4
-collision_mask = 1
+	position = Vector2(900, 400)
+	collision_layer = 4
+	collision_mask = 1
 
 [node name="Sprite2D" type="Sprite2D" parent="Collectible2"]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Collectible2"]
-shape = SubResource("CircleShape2D_collect")
+	shape = SubResource("CircleShape2D_collect")
 
 [node name="Collectible3" type="Area2D" parent="."]
-position = Vector2(500, 600)
-collision_layer = 4
-collision_mask = 1
+	position = Vector2(500, 600)
+	collision_layer = 4
+	collision_mask = 1
 
 [node name="Sprite2D" type="Sprite2D" parent="Collectible3"]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Collectible3"]
-shape = SubResource("CircleShape2D_collect")
+	shape = SubResource("CircleShape2D_collect")
 
 [node name="Enemy1" type="Area2D" parent="."]
-position = Vector2(400, 300)
-collision_layer = 8
-collision_mask = 1
+	position = Vector2(400, 300)
+	collision_layer = 8
+	collision_mask = 1
 
 [node name="Sprite2D" type="Sprite2D" parent="Enemy1"]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Enemy1"]
-shape = SubResource("RectangleShape2D_enemy")
+	shape = SubResource("RectangleShape2D_enemy")
 
 [node name="Enemy2" type="Area2D" parent="."]
-position = Vector2(800, 500)
-collision_layer = 8
-collision_mask = 1
+	position = Vector2(800, 500)
+	collision_layer = 8
+	collision_mask = 1
 
 [node name="Sprite2D" type="Sprite2D" parent="Enemy2"]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Enemy2"]
-shape = SubResource("RectangleShape2D_enemy")
+	shape = SubResource("RectangleShape2D_enemy")
 
 [node name="PowerUp1" type="Area2D" parent="."]
-position = Vector2(700, 500)
-collision_layer = 16
-collision_mask = 1
+	position = Vector2(700, 500)
+	collision_layer = 16
+	collision_mask = 1
 
 [node name="Sprite2D" type="Sprite2D" parent="PowerUp1"]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="PowerUp1"]
-shape = SubResource("CircleShape2D_collect")
+	shape = SubResource("CircleShape2D_collect")
 
 [node name="HUD" type="CanvasLayer" parent="."]
 
 [node name="ScoreLabel" type="Label" parent="HUD"]
-layout_mode = 2
-anchors_preset = 0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = 200.0
-offset_bottom = 50.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 24
-text = "分数: 0"
+	layout_mode = 2
+	anchors_preset = 0
+	offset_left = 20.0
+	offset_top = 20.0
+	offset_right = 200.0
+	offset_bottom = 50.0
+	theme_override_colors/font_color = Color(1, 1, 1, 1)
+	theme_override_font_sizes/font_size = 24
+	text = "分数: 0"
 
 [node name="HealthLabel" type="Label" parent="HUD"]
-layout_mode = 2
-anchors_preset = 0
-offset_left = 20.0
-offset_top = 60.0
-offset_right = 200.0
-offset_bottom = 90.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 24
-text = "生命: 3"
+	layout_mode = 2
+	anchors_preset = 0
+	offset_left = 20.0
+	offset_top = 60.0
+	offset_right = 200.0
+	offset_bottom = 90.0
+	theme_override_colors/font_color = Color(1, 1, 1, 1)
+	theme_override_font_sizes/font_size = 24
+	text = "生命: 3"
 
 [node name="LevelLabel" type="Label" parent="HUD"]
-layout_mode = 2
-anchors_preset = 0
-offset_left = 20.0
-offset_top = 100.0
-offset_right = 200.0
-offset_bottom = 130.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 24
-text = "关卡: 1"
+	layout_mode = 2
+	anchors_preset = 0
+	offset_left = 20.0
+	offset_top = 100.0
+	offset_right = 200.0
+	offset_bottom = 130.0
+	theme_override_colors/font_color = Color(1, 1, 1, 1)
+	theme_override_font_sizes/font_size = 24
+	text = "关卡: 1"
 
 [node name="EffectsLabel" type="Label" parent="HUD"]
-layout_mode = 2
-anchors_preset = 0
-offset_left = 20.0
-offset_top = 140.0
-offset_right = 300.0
-offset_bottom = 170.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 20
-text = ""
+	layout_mode = 2
+	anchors_preset = 0
+	offset_left = 20.0
+	offset_top = 140.0
+	offset_right = 300.0
+	offset_bottom = 170.0
+	theme_override_colors/font_color = Color(1, 1, 1, 1)
+	theme_override_font_sizes/font_size = 20
+	text = ""
 
 [node name="PanelGameOver" type="Panel" parent="HUD"]
-layout_mode = 2
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -200.0
-offset_top = -150.0
-offset_right = 200.0
-offset_bottom = 150.0
-visible = false
+	layout_mode = 2
+	anchors_preset = 8
+	anchor_left = 0.5
+	anchor_top = 0.5
+	anchor_right = 0.5
+	anchor_bottom = 0.5
+	offset_left = -200.0
+	offset_top = -150.0
+	offset_right = 200.0
+	offset_bottom = 150.0
+	visible = false
 
 [node name="FinalScoreLabel" type="Label" parent="HUD/PanelGameOver"]
-layout_mode = 2
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -100.0
-offset_top = -60.0
-offset_right = 100.0
-offset_bottom = -30.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 28
-text = "最终分数: 0"
+	layout_mode = 2
+	anchors_preset = 8
+	anchor_left = 0.5
+	anchor_top = 0.5
+	anchor_right = 0.5
+	anchor_bottom = 0.5
+	offset_left = -100.0
+	offset_top = -60.0
+	offset_right = 100.0
+	offset_bottom = -30.0
+	theme_override_colors/font_color = Color(1, 1, 1, 1)
+	theme_override_font_sizes/font_size = 28
+	text = "最终分数: 0"
 
 [node name="HighScoreLabel" type="Label" parent="HUD/PanelGameOver"]
-layout_mode = 2
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -100.0
-offset_top = -20.0
-offset_right = 100.0
-offset_bottom = 5.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 22
-text = "最高分: 0"
+	layout_mode = 2
+	anchors_preset = 8
+	anchor_left = 0.5
+	anchor_top = 0.5
+	anchor_right = 0.5
+	anchor_bottom = 0.5
+	offset_left = -100.0
+	offset_top = -20.0
+	offset_right = 100.0
+	offset_bottom = 5.0
+	theme_override_colors/font_color = Color(1, 1, 1, 1)
+	theme_override_font_sizes/font_size = 22
+	text = "最高分: 0"
 
 [node name="RestartHintLabel" type="Label" parent="HUD/PanelGameOver"]
-layout_mode = 2
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -120.0
-offset_top = 40.0
-offset_right = 120.0
-offset_bottom = 70.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 18
-text = "按 Enter 重新开始"
+	layout_mode = 2
+	anchors_preset = 8
+	anchor_left = 0.5
+	anchor_top = 0.5
+	anchor_right = 0.5
+	anchor_bottom = 0.5
+	offset_left = -120.0
+	offset_top = 40.0
+	offset_right = 120.0
+	offset_bottom = 70.0
+	theme_override_colors/font_color = Color(1, 1, 1, 1)
+	theme_override_font_sizes/font_size = 18
+	text = "按 Enter 重新开始"
 
 [node name="StatsLabel" type="Label" parent="HUD/PanelGameOver"]
-layout_mode = 2
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -150.0
-offset_top = 70.0
-offset_right = 150.0
-offset_bottom = 100.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 16
-text = "关卡: 1 | 游玩时间: 0s"
+	layout_mode = 2
+	anchors_preset = 8
+	anchor_left = 0.5
+	anchor_top = 0.5
+	anchor_right = 0.5
+	anchor_bottom = 0.5
+	offset_left = -150.0
+	offset_top = 70.0
+	offset_right = 150.0
+	offset_bottom = 100.0
+	theme_override_colors/font_color = Color(1, 1, 1, 1)
+	theme_override_font_sizes/font_size = 16
+	text = "关卡: 1 | 游玩时间: 0s"
