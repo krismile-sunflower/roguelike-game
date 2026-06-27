@@ -1,211 +1,80 @@
-# SaveManager - 游戏存档管理器
-# 使用 JSON 序列化保存/加载游戏数据
-# 支持：最高分、关卡进度、音量设置、游玩时间
 extends Node
 
-# ==================== 存档数据结构 ====================
+const SAVE_PATH := "user://savegame.json"
 
-# 存档数据字典
 var save_data: Dictionary = {
-    "high_score": 0,
-    "max_level": 1,
-    "total_play_time": 0.0,
-    "games_played": 0,
-    "games_won": 0,
-    "last_save_time": 0,
-    "settings": {
-        "sfx_volume": 1.0,
-        "bgm_volume": 0.7,
-        "sfx_enabled": true,
-        "bgm_enabled": true,
-    }
+	"current_level_index": 0,
+	"completed_levels": [],
+	"hint_count": 0,
+	"high_score": 0,
+	"has_seen_tutorial": false,
+	"has_save_data": false,
 }
 
-# 存档文件路径
-var save_path: String = "user://savegame.json"
 
-# 是否已加载
-var is_loaded: bool = false
-
-
-# ==================== 生命周期 ====================
-
-# 场景初始化
 func _ready() -> void:
-    # 尝试加载存档
-    load_save()
-    print("存档管理器已就绪")
+	load_save()
 
 
-# ==================== 公共方法：保存 ====================
-
-# 保存完整存档
-func save_all() -> void:
-    # 更新最后保存时间
-    save_data["last_save_time"] = Time.get_unix_time_from_system()
-
-    # 序列化为 JSON
-    var json_str: String = JSON.stringify(save_data, "\t")  # 带缩进，方便阅读
-
-    # 写入文件
-    var file: FileAccess = FileAccess.open(save_path, FileAccess.WRITE)
-
-    if file:
-        file.store_string(json_str)
-        file.close()
-        print("存档已保存:", save_path)
-    else:
-        push_error("无法保存存档:", save_path)
-
-
-# 保存最高分
-func save_high_score(score: int) -> void:
-    if score > save_data["high_score"]:
-        save_data["high_score"] = score
-        save_all()  # 同时保存完整存档
-
-
-# 保存关卡进度
-func save_level_progress(level: int) -> void:
-    if level > save_data["max_level"]:
-        save_data["max_level"] = level
-        save_all()
-
-
-# 增加游玩统计
-func increment_stats(games_won: bool = false) -> void:
-    save_data["games_played"] += 1
-    if games_won:
-        save_data["games_won"] += 1
-    save_all()
-
-
-# 保存游玩时间
-func save_play_time(seconds: float) -> void:
-    save_data["total_play_time"] += seconds
-    save_all()
-
-
-# ==================== 公共方法：加载 ====================
-
-# 加载存档
 func load_save() -> bool:
-    if not FileAccess.file_exists(save_path):
-        print("没有找到存档文件，使用默认数据")
-        _reset_save_data()
-        return false
+	if not FileAccess.file_exists(SAVE_PATH):
+		return false
 
-    var file: FileAccess = FileAccess.open(save_path, FileAccess.READ)
+	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	if file == null:
+		return false
 
-    if not file:
-        push_error("无法读取存档文件")
-        return false
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	file.close()
 
-    var json_str: String = file.get_as_text()
+	if parsed is Dictionary:
+		save_data["current_level_index"] = int(parsed.get("current_level_index", 0))
+		save_data["completed_levels"] = parsed.get("completed_levels", [])
+		save_data["hint_count"] = int(parsed.get("hint_count", 0))
+		save_data["high_score"] = int(parsed.get("high_score", 0))
+		save_data["has_seen_tutorial"] = bool(parsed.get("has_seen_tutorial", false))
+		save_data["has_save_data"] = bool(parsed.get("has_save_data", true))
+		return true
 
-    file.close()
-
-    # 解析 JSON
-    var parsed: Variant = JSON.parse_string(json_str)
-
-    if parsed is Dictionary:
-        # 合并数据（保留新字段）
-        _merge_save_data(parsed)
-        is_loaded = true
-        print("存档已加载")
-        return true
-    else:
-        push_error("存档文件格式错误")
-        _reset_save_data()
-        return false
+	return false
 
 
-# 获取最高分
+func save_all() -> void:
+	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if file == null:
+		return
+
+	file.store_string(JSON.stringify(save_data))
+	file.close()
+
+
+func save_progress(level_index: int, completed_levels: Array, hint_count: int, has_seen_tutorial: bool = false) -> void:
+	save_data["current_level_index"] = maxi(level_index, 0)
+	save_data["completed_levels"] = completed_levels.duplicate()
+	save_data["hint_count"] = maxi(hint_count, 0)
+	save_data["has_seen_tutorial"] = has_seen_tutorial
+	save_data["has_save_data"] = true
+	save_all()
+
+
 func get_high_score() -> int:
-    return save_data.get("high_score", 0)
+	return int(save_data.get("high_score", 0))
 
 
-# 获取最大关卡
-func get_max_level() -> int:
-    return save_data.get("max_level", 1)
+func save_high_score(score: int) -> void:
+	save_data["high_score"] = maxi(score, 0)
+	save_all()
 
 
-# 获取总游玩时间（秒）
-func get_total_play_time() -> float:
-    return save_data.get("total_play_time", 0.0)
+func has_save_data() -> bool:
+	return bool(save_data.get("has_save_data", false))
 
 
-# 获取游玩统计
-func get_play_stats() -> Dictionary:
-    return {
-        "games_played": save_data.get("games_played", 0),
-        "games_won": save_data.get("games_won", 0),
-        "total_play_time": save_data.get("total_play_time", 0.0),
-    }
-
-
-# 获取设置
-func get_settings() -> Dictionary:
-    return save_data.get("settings", {})
-
-
-# ==================== 公共方法：清除 ====================
-
-# 清除存档（重置所有数据）
-func clear_save() -> void:
-    if FileAccess.file_exists(save_path):
-        DirAccess.remove_absolute(save_path)
-        print("存档已清除")
-    _reset_save_data()
-
-
-# 导出存档数据为字符串（用于分享/调试）
-func export_save_string() -> String:
-    return JSON.stringify(save_data, "  ")
-
-
-# 导入存档数据（从字符串）
-func import_save_string(json_str: String) -> bool:
-    var parsed: Variant = JSON.parse_string(json_str)
-
-    if parsed is Dictionary:
-        _merge_save_data(parsed)
-        save_all()
-        return true
-    return false
-
-
-# ==================== 私有方法 ====================
-
-# 重置为默认存档数据
-func _reset_save_data() -> void:
-    save_data = {
-        "high_score": 0,
-        "max_level": 1,
-        "total_play_time": 0.0,
-        "games_played": 0,
-        "games_won": 0,
-        "last_save_time": 0,
-        "settings": {
-            "sfx_volume": 1.0,
-            "bgm_volume": 0.7,
-            "sfx_enabled": true,
-            "bgm_enabled": true,
-        }
-    }
-    is_loaded = false
-
-
-# 合并存档数据（保留未知字段）
-func _merge_save_data(new_data: Dictionary) -> void:
-    for key in new_data:
-        if key in save_data:
-            if typeof(save_data[key]) == TYPE_DICTIONARY and typeof(new_data[key]) == TYPE_DICTIONARY:
-                # 递归合并子字典
-                for sub_key in new_data[key]:
-                    save_data[key][sub_key] = new_data[key][sub_key]
-            else:
-                save_data[key] = new_data[key]
-        else:
-            # 新增字段，直接添加
-            save_data[key] = new_data[key]
+func get_progress_data() -> Dictionary:
+	return {
+		"current_level_index": int(save_data.get("current_level_index", 0)),
+		"completed_levels": save_data.get("completed_levels", []),
+		"hint_count": int(save_data.get("hint_count", 0)),
+		"has_seen_tutorial": bool(save_data.get("has_seen_tutorial", false)),
+		"has_save_data": bool(save_data.get("has_save_data", false)),
+	}

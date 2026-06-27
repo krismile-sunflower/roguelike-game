@@ -1,356 +1,199 @@
-# Godot 2D Roguelike Demo - 开发指南
-
-## 1. 环境搭建
+# 开发指南
 
-### 1.1 安装 Godot
-
-1. 访问 https://godotengine.org/download
-2. 下载 Godot 4.3+ 稳定版
-3. 解压即可使用（无需安装）
-
-### 1.2 导入项目
+## 环境要求
 
-1. 启动 Godot
-2. 点击 "Import" 按钮
-3. 选择 `/root/project/godot-demo` 文件夹
-4. 点击 "Import & Edit"
+- Godot 版本：4.7
+- 当前目标平台：桌面端
+- 当前窗口分辨率：`1280 x 720`
+- 主入口场景：`res://scenes/main.tscn`
 
-### 1.3 项目配置检查
+项目入口仍是单场景结构，不拆分独立菜单场景。
 
-导入后，确认以下配置：
+## 导入与启动
 
-- **项目设置** → **Input Map**：检查输入映射是否正确
-- **项目设置** → **Display** → **Window**：检查窗口大小
-- **项目设置** → **Autoload**：检查 AutoLoad 单例是否注册
+1. 用 Godot 4.7 导入项目目录。
+2. 打开后确认 `project.godot` 中主场景仍是 `res://scenes/main.tscn`。
+3. 检查 AutoLoad 是否存在：
+   - `GameData`
+   - `GameState`
+   - `AudioManager`
+   - `ParticleManager`
+   - `SaveManager`
+4. 直接运行项目。
 
----
+首次进入时，预期应先看到中文主菜单，而不是直接进入关卡。
 
-## 2. 场景搭建
+## 主场景调试路径
 
-### 2.1 创建主场景
+当前建议按下面顺序检查主流程：
 
-1. 点击场景面板左上角 "+" 按钮
-2. 选择 "2D Scene"
-3. 根节点改为 `Node2D`
-4. 命名为 `MainScene`
-5. 保存为 `res://scenes/main.tscn`
+1. 主菜单是否正常显示：
+   - `开始整理`
+   - `继续整理`
+   - `玩法说明`
+   - `退出游戏`
+2. 点击 `开始整理` 后是否进入第 1 关。
+3. 首关是否出现中文分步教学。
+4. 物品是否可以鼠标拖放。
+5. 正确摆放后是否吸附，错误摆放后是否回位。
+6. 完成一关后是否出现完成反馈。
+7. `继续整理` 是否能从已有进度进入。
+8. `Esc` 是否能打开暂停并恢复。
 
-### 2.2 搭建主场景层级
+## 关卡数据位置
 
-按照以下层级添加节点：
+当前关卡不是独立资源文件，也不是外部 JSON。
 
-```
-MainScene (Node2D)
-├── Player (场景引用)
-├── LevelGenerator (场景引用)
-├── Collectible × 3
-├── Enemy × 2
-├── PowerUp × 1
-└── HUD (场景引用)
-```
+它们直接定义在 `scripts/main.gd` 的 `LEVELS` 常量中。每个关卡都是一个字典，内部包含当前关的背景、目标区域和物品定义。
 
-**操作步骤：**
+这样做的好处是：
 
-1. **添加玩家：**
-   - 右键 MainScene → Add Child Node
-   - 选择 "Scene" → "New Scene"
-   - 根节点选 `CharacterBody2D`
-   - 命名为 `Player`
-   - 附加脚本 `player.gd`
+- 当前原型阶段改动快
+- 不需要额外编辑器和序列化层
+- 主流程逻辑和数据能一起调试
 
-2. **添加收集品：**
-   - 右键 MainScene → Add Child Node
-   - 选择 "Area2D"
-   - 添加子节点 `Sprite2D` 和 `CollisionShape2D`
-   - 附加脚本 `collectible.gd`
-   - 复制 2 个，调整位置
+限制也很明确：
 
-3. **添加敌人：**
-   - 右键 MainScene → Add Child Node
-   - 选择 "CharacterBody2D"
-   - 添加子节点 `Sprite2D`、`CollisionShape2D`、`Area2D(CollisionArea)`
-   - 附加脚本 `enemy.gd`
-   - 复制 1 个，调整位置
+- 关卡多起来后会变得难维护
+- 不利于内容和逻辑分工
 
-4. **添加道具：**
-   - 右键 MainScene → Add Child Node
-   - 选择 "Area2D"
-   - 添加子节点 `Sprite2D` 和 `CollisionShape2D`
-   - 附加脚本 `power_up.gd`
+## 如何新增一个整理关
 
-5. **添加 HUD：**
-   - 右键 MainScene → Add Child Node
-   - 选择 "CanvasLayer"
-   - 命名为 `HUD`
-   - 添加子节点 `Label` × 5
-   - 分别命名为：`ScoreLabel`、`HealthLabel`、`LevelLabel`、`EffectsLabel`、`PanelGameOver`
-   - 附加脚本 `hud.gd`
-
-### 2.3 设置节点属性
-
-**Player 节点：**
-- 在 Inspector 中调整 Sprite2D 的 Texture（可选）
-- 调整 CollisionShape2D 的大小
-
-**Collectible 节点：**
-- 设置 `points` 属性（默认 10）
-- 调整 Sprite2D 的 Texture
-
-**Enemy 节点：**
-- 设置 `speed`、`damage`、`patrol_range`
-- 设置 `enemy_type`（0=基础，1=快速，2=耐打）
-
-**PowerUp 节点：**
-- 设置 `power_up_type`（0=护盾，1=双倍分数，2=回血，3=随机）
-- 设置 `duration`（默认 10 秒）
-
-**HUD 节点：**
-- 调整 Label 的位置和样式
-- PanelGameOver 默认 `visible = false`
+在 `LEVELS` 里追加一项关卡字典，至少补齐以下字段：
 
----
+- `title`
+- `goal`
+- `background_color`
+- `desk_color`
+- `targets`
+- `items`
 
-## 3. 脚本链接
+### 新增目标区域
 
-### 3.1 链接脚本步骤
+每个 target 至少需要：
 
-1. 在场景树中选择节点
-2. 在右侧 Inspector 面板点击 "Attach Script"
-3. 选择脚本文件路径
-4. 点击 "Create"
+- `id`
+- `label`
+- `mode`
+- `position`
+- `size`
 
-### 3.2 需要链接的脚本
+`mode` 当前支持：
 
-| 节点 | 脚本文件 |
-|---|---|
-| Player (CharacterBody2D) | scripts/player.gd |
-| Collectible (Area2D) | scripts/collectible.gd |
-| Enemy (CharacterBody2D) | scripts/enemy.gd |
-| PowerUp (Area2D) | scripts/power_up.gd |
-| HUD (CanvasLayer) | scripts/hud.gd |
-| LevelGenerator (Node2D) | scripts/level_generator.gd |
-
----
-
-## 4. 运行测试
+- `single`
+- `category_bin`
 
-### 4.1 启动游戏
+如果是单一归位，需要填 `accepted_item_ids`。
 
-- 点击顶部绿色三角按钮
-- 或按 F5 快捷键
+如果是分类收纳，需要填：
 
-### 4.2 测试操作
-
-| 操作 | 按键 | 预期效果 |
-|---|---|---|
-| 移动 | ← → | 角色左右移动 |
-| 跳跃 | 空格 | 角色跳跃 |
-| 收集 | 触碰金色方块 | 分数增加，粒子效果 |
-| 受伤 | 触碰红色方块 | 生命减少，屏幕震动 |
-| 道具 | 触碰紫色方块 | 获得效果 |
-| 暂停 | ESC | 游戏暂停 |
-| 结束 | 生命归零 | 显示游戏结束面板 |
-| 重启 | Enter | 重新开始游戏 |
+- `accepted_category`
+- `slot_positions`
 
-### 4.3 调试技巧
+### 新增物品
 
-1. **查看输出：** 底部 "Output" 面板显示 print 信息
-2. **检查节点：** 场景树面板查看节点层级
-3. **调试变量：** 在 Inspector 中修改属性实时测试
-4. **断点调试：** 在脚本行号左侧点击设置断点
+每个 item 至少需要：
 
----
+- `id`
+- `label`
+- `target_id`
+- `home_position`
+- `size`
+- `color`
 
-## 5. 资源准备
+分类收纳关需要再加：
 
-### 5.1 目录结构
+- `category`
 
-```
-assets/
-├── images/
-│   ├── player.png       # 玩家图片
-│   ├── enemy.png        # 敌人图片
-│   ├── collectible.png  # 收集品图片
-│   ├── powerup.png      # 道具图片
-│   └── background.png   # 背景图片
-├── audio/
-│   ├── sfx/
-│   │   ├── jump.ogg     # 跳跃音效
-│   │   ├── collect.ogg  # 收集音效
-│   │   ├── hurt.ogg     # 受伤音效
-│   │   ├── enemy_die.ogg # 敌人死亡音效
-│   │   ├── powerup.ogg  # 道具音效
-│   │   └── game_over.ogg # 游戏结束音效
-│   └── bgm/
-│       ├── gameplay.ogg # 背景音乐
-│       └── game_over.ogg # 结束音乐
-└── fonts/
-    └── font.ttf         # 自定义字体
-```
+`target_id` 必须能匹配到本关某个 `target.id`。
 
-### 5.2 导入资源
+## 如何调试拖放问题
 
-1. 将资源文件放入对应目录
-2. 在 Godot 的 "FileSystem" 面板中右键 → "Reload"
-3. 拖拽资源到 Inspector 的 Texture 属性
+拖放问题优先看这几层：
 
-### 5.3 资源要求
+### 1. 输入链路
 
-- **图片格式：** PNG（支持透明）
-- **音频格式：** OGG 或 WAV
-- **字体格式：** TTF 或 OTF
-- **建议尺寸：** 32x32 或 64x64 像素
+当前拖拽依赖 `main.gd` 的 `_input()`。
 
----
+如果拖不动，先确认：
 
-## 6. 参数调优
+- 事件没有被错误改回 `_unhandled_input()`
+- 当前状态确实是 `GameState.Playing`
+- 鼠标左键事件能进入 `_try_begin_drag()` 和 `_try_finish_drag()`
 
-### 6.1 玩家参数
+### 2. UI 输入遮挡
 
-在 `player.gd` 中调整：
+整理原型里有很多 `CanvasLayer` 和 `Control`。
 
-```gdscript
-const SPEED: float = 200.0        # 移动速度
-const JUMP_VELOCITY: float = -400.0  # 跳跃力度
-var gravity: float = 980.0        # 重力
-var invincible_time: float = 1.5  # 无敌时间
-```
+如果 UI 设置不当，会直接截走鼠标事件。优先检查：
 
-### 6.2 地图参数
+- 装饰性 `ColorRect`
+- 教学文案层
+- HUD 面板
+- 完成面板和遮罩
 
-在 Godot 编辑器中选中 LevelGenerator 节点，调整：
+非交互控件应使用合适的 `mouse_filter`，避免挡住物品拖拽。
 
-| 参数 | 默认值 | 说明 |
-|---|---|---|
-| grid_width | 20 | 地图宽度（格子） |
-| grid_height | 15 | 地图高度（格子） |
-| cell_size | 64 | 格子大小（像素） |
-| obstacle_probability | 0.3 | 障碍物概率 |
-| collectible_count | 10 | 收集品数量 |
-| enemy_count | 5 | 敌人数量 |
-| powerup_count | 3 | 道具数量 |
+### 3. 命中范围
 
-### 6.3 敌人参数
+`DraggableItem.contains_point()` 和 `DropTarget.contains_point()` 都基于矩形范围判断。
 
-在 Godot 编辑器中选中 Enemy 节点，调整：
+如果视觉位置和点击位置不一致，重点检查：
 
-| 参数 | 默认值 | 说明 |
-|---|---|---|
-| speed | 100 | 移动速度 |
-| damage | 1 | 伤害值 |
-| patrol_range | 200 | 巡逻范围 |
-| enemy_type | 0 | 敌人类型 |
+- `global_position`
+- `size`
+- `home_position`
+- 目标 `position`
 
----
+### 4. 放置规则
 
-## 7. 常见问题排查
+如果能拖动但无法放下，优先看：
 
-### 7.1 场景无法运行
+- `DropTarget.can_accept(item)`
+- `accepted_item_ids`
+- `accepted_category`
+- `target_id`
+- `category`
 
-**问题：** 点击运行后无反应
+### 5. 反馈表现
 
-**解决：**
-1. 检查 project.godot 中的 `run/main_scene` 是否正确
-2. 确认主场景已保存
-3. 检查控制台是否有错误信息
+如果逻辑正确但玩家感觉“不知道发生了什么”，优先补：
 
-### 7.2 脚本未生效
+- 吸附动画
+- 完成面板
+- 状态文案
+- 教学提示
 
-**问题：** 脚本中的代码不执行
+## 中文文案维护规则
 
-**解决：**
-1. 确认脚本已正确链接到节点
-2. 检查 `_ready()` 和 `_physics_process()` 是否拼写正确
-3. 查看 Output 面板是否有报错
+当前项目玩家可见内容统一使用简体中文。
 
-### 7.3 碰撞不触发
+建议规则：
 
-**问题：** 碰到收集品没有加分
+- 玩家看到的标题、按钮、提示、说明全部写中文
+- 内部字段名、脚本名、节点名继续使用英文
+- 文案集中放在脚本常量区，避免散落在逻辑分支里
+- 如需规避编码污染，可以继续使用稳定的 UTF-8 文件或常量集中管理
 
-**解决：**
-1. 确认 Area2D 的 CollisionShape2D 已设置
-2. 确认 CharacterBody2D 有 CollisionShape2D
-3. 检查物理层设置（Project Settings → Physics → 2D Physics）
+## 当前相关脚本
 
-### 7.4 信号未触发
+接手当前整理玩法时，优先关注：
 
-**问题：** 分数变化但 UI 不更新
+- `scripts/main.gd`
+- `scripts/hud.gd`
+- `scripts/draggable_item.gd`
+- `scripts/drop_target.gd`
+- `scripts/game_data.gd`
+- `scripts/game_state.gd`
+- `scripts/save_manager.gd`
 
-**解决：**
-1. 确认 `_ready()` 中已连接信号
-2. 确认回调函数名称正确
-3. 在回调函数中添加 print 调试
+## 当前不再使用的旧路线
 
----
+不要再按旧文档那样去搭建：
 
-## 8. 发布准备
+- 玩家移动和跳跃主循环
+- 敌人战斗主循环
+- 地牢或房间生成主循环
+- 旧版 HUD 分数/生命值面板
 
-### 8.1 打包设置
-
-1. 点击 "Project" → "Export..."
-2. 添加平台（PC / Android / Web）
-3. 配置导出模板
-
-### 8.2 发布到 itch.io
-
-1. 打包 PC 版本（Windows/Mac/Linux）
-2. 创建 itch.io 项目页面
-3. 上传构建文件
-4. 设置价格和描述
-
-### 8.3 发布到 Steam
-
-1. 准备 Steam Direct Fee
-2. 创建商店页面
-3. 上传构建包
-4. 等待审核
-
----
-
-## 9. 性能优化
-
-### 9.1 粒子优化
-
-- 使用 `one_shot` 模式
-- 控制粒子数量（建议 ≤ 50）
-- 粒子结束后立即销毁
-
-### 9.2 音频优化
-
-- 使用 OGG 格式（体积小，音质好）
-- 预加载常用音频
-- 音效池复用
-
-### 9.3 内存优化
-
-- 避免在 `_process` 中创建对象
-- 及时 `queue_free()` 不需要的节点
-- 使用 `preload()` 预加载资源
-
----
-
-## 10. 团队协作
-
-### 10.1 Git 工作流
-
-```bash
-# 创建功能分支
-git checkout -b feature/enemy-system
-
-# 提交更改
-git add -A
-git commit -m "feat: 添加敌人系统"
-
-# 合并到主分支
-git checkout main
-git merge feature/enemy-system
-```
-
-### 10.2 分支命名
-
-| 类型 | 命名 | 示例 |
-|---|---|---|
-| 新功能 | feature/xxx | feature/player-animation |
-| Bug修复 | fix/xxx | fix/collision-detection |
-| 文档 | docs/xxx | docs/readme-update |
-| 重构 | refactor/xxx | refactor/audio-system |
+这些旧脚本仍然留在仓库里，但它们不是当前开发的默认入口。

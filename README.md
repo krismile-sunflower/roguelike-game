@@ -1,224 +1,100 @@
-# Godot 2D Roguelike Demo 项目
-# 一个完整的 2D Roguelike 游戏原型
-# 包含：玩家控制、敌人AI、道具系统、随机地下城、存档、音效、粒子效果
+# 整理时光
+
+一个基于 Godot 4.7 的单屏整理谜题原型。玩家通过鼠标拖放物品，把它们放回合适的位置，完成一页页安静、温柔的整理场景。
+
+当前工程名仍是 `GodotDemo`，对外玩法名称使用“整理时光”。
+
+## 当前可玩内容
+
+- 中文主菜单：`开始整理 / 继续整理 / 玩法说明 / 退出游戏`
+- 3 个单屏整理关卡：归位、排序、分类
+- 鼠标拖放交互：拾取、拖动、放下、吸附、回位
+- 首关分步教学与游戏内帮助入口
+- 暂停、提示、重置本关
+- 本地进度保存：继续整理、教程状态、提示次数、关卡完成记录
+
+## 操作说明
+
+- 鼠标左键按住物品：拿起并拖动
+- 松开鼠标左键：放下物品
+- 放对位置：物品会自动吸附
+- 放错位置：物品会回到原位
+- `Esc`：打开或关闭暂停
+
+## 当前状态
+
+项目已经可以导入并游玩，主流程是完整的中文整理原型，但仍处于首版垂直切片阶段。
+
+目前已经完成：
+
+- 启动后先进入主菜单，而不是直接进关
+- 整理主循环、过关反馈、继续整理流程
+- 中文 HUD、中文说明页、中文教学提示
+- 无音频资源和无粒子资源时的安全降级
+
+目前仍在迭代：
+
+- 素材、美术和统一视觉包装
+- 更丰富的完成反馈和动画细节
+- 更多关卡与更稳的关卡数据组织方式
+- 更完整的音频、粒子和叙事表达
+
+## 运行方式
+
+1. 使用 Godot 4.7 打开项目目录。
+2. 导入后确认入口场景为 `res://scenes/main.tscn`。
+3. 直接运行项目或运行主场景即可。
+
+`project.godot` 中当前配置：
+
+- 主入口：`res://scenes/main.tscn`
+- AutoLoad：`GameData`、`GameState`、`AudioManager`、`ParticleManager`、`SaveManager`
+- 目标分辨率：`1280 x 720`
 
 ## 项目结构
-```
-godot-demo/
-├── project.godot              # 项目配置（AutoLoad: GameData, GameState, AudioManager, ParticleManager, SaveManager）
-├── .gitignore                 # Git 忽略规则
-├── README.md                  # 本文件
-├── scenes/                    # 场景文件（需在 Godot 编辑器中创建）
-│   ├── player.tscn            # 玩家场景
-│   ├── collectible.tscn       # 收集品场景
-│   ├── enemy.tscn             # 敌人场景
-│   ├── power_up.tscn          # 道具场景
-│   ├── level_generator.tscn   # 地图生成器场景
-│   ├── dungeon_generator.tscn # 地下城生成器场景
-│   └── main.tscn              # 主场景
-└── scripts/                   # 脚本文件
-    ├── game_data.gd           # 全局游戏数据（分数、生命、信号）
-    ├── game_state.gd          # 游戏状态管理（开始/暂停/结束/最高分）
-    ├── audio_manager.gd       # 音频管理器（SFX + BGM，音量设置，本地持久化）
-    ├── particle_manager.gd    # 粒子效果管理器（收集闪光、受伤火花、爆炸）
-    ├── save_manager.gd        # 存档管理器（JSON 序列化，最高分/进度/统计）
-    ├── player.gd              # 玩家控制（移动、跳跃、重力、无敌时间、屏幕震动）
-    ├── collectible.gd         # 收集品逻辑（碰撞加分、浮动动画、粒子效果）
-    ├── enemy.gd               # 敌人AI（巡逻、3种类型、碰撞伤害、死亡特效）
-    ├── power_up.gd            # 道具系统（护盾/双倍分数/回血、随机生成）
-    ├── room.gd                # 房间节点（Roguelike 房间类、类型枚举）
-    ├── dungeon_generator.gd   # 地下城生成器（房间生成、连接、走廊）
-    ├── level_generator.gd     # 网格地图生成器（障碍物、自动分布）
-    └── hud.gd                 # UI 显示（分数、生命、关卡、道具效果、游戏结束面板）
+
+```text
+roguelike-game/
+├─ project.godot
+├─ scenes/
+│  ├─ main.tscn
+│  ├─ draggable_item.tscn
+│  └─ drop_target.tscn
+├─ scripts/
+│  ├─ main.gd
+│  ├─ hud.gd
+│  ├─ draggable_item.gd
+│  ├─ drop_target.gd
+│  ├─ game_data.gd
+│  ├─ game_state.gd
+│  ├─ save_manager.gd
+│  ├─ audio_manager.gd
+│  └─ particle_manager.gd
+└─ docs/
+   ├─ architecture.md
+   ├─ development-guide.md
+   ├─ gdscript-guide.md
+   └─ next-steps.md
 ```
 
-## 核心系统
+当前主流程重点文件：
 
-### 1. 游戏数据 (game_data.gd)
-- 分数和生命值管理
-- 信号通知 UI 实时更新
-- 加减血、恢复生命
+- `scenes/main.tscn`：唯一运行入口
+- `scripts/main.gd`：菜单、关卡、教程、完成流程
+- `scripts/hud.gd`：顶部信息栏、帮助/提示/重置按钮
+- `scripts/draggable_item.gd`：可拖动物品
+- `scripts/drop_target.gd`：目标区域与接收规则
 
-### 2. 游戏状态 (game_state.gd)
-- 四种状态：空闲/进行中/暂停/结束
-- ESC 切换暂停，Enter 重新开始
-- 自动记录最高分和游玩统计
-- 背景音乐播放控制
+## 已知限制
 
-### 3. 音频管理 (audio_manager.gd)
-- 音效(SFX)和背景音乐(BGM)分离
-- 音量设置本地持久化(JSON)
-- 淡入淡出效果
-- 开关切换
+- 当前素材大多是代码绘制或占位表现，不是最终美术资源。
+- `AudioManager` 和 `ParticleManager` 目前是安全降级实现，没有资源时也不会报错。
+- 仓库里仍保留了一些旧平台跳跃时期的脚本和场景文件名，但它们已经不参与当前主流程。
+- 文档只描述当前整理玩法，不再覆盖旧的 Roguelike、战斗、跳跃或随机地牢方向。
 
-### 4. 粒子效果 (particle_manager.gd)
-- 收集闪光（金色扩散）
-- 受伤火花（红色飞溅）
-- 敌人爆炸（橙红爆发）
-- 道具出现（紫色上升）
+## 文档索引
 
-### 5. 存档系统 (save_manager.gd)
-- JSON 序列化存档
-- 最高分、关卡进度、游玩统计
-- 音量设置持久化
-- 支持导出/导入存档字符串
-
-### 6. 玩家控制 (player.gd)
-- 左右移动 + 跳跃 + 重力
-- 无敌时间（受伤后闪烁）
-- 屏幕震动反馈
-- 护盾/双倍分数效果接口
-
-### 7. 敌人系统 (enemy.gd)
-- 左右巡逻 AI
-- 3种类型：基础/快速/耐打
-- 碰撞伤害 + 死亡特效
-- 接触后销毁
-
-### 8. 道具系统 (power_up.gd)
-- 3种道具：护盾/双倍分数/回血
-- 随机生成，颜色区分
-- 时效性道具自动过期
-- 浮动动画
-
-### 9. 地图生成 (level_generator.gd + dungeon_generator.gd)
-- 网格地图：障碍物 + 自动分布
-- 地下城：多房间 + 走廊连接
-- 可配置难度参数
-
-### 10. UI 显示 (hud.gd)
-- 分数、生命、关卡实时显示
-- 道具效果指示
-- 暂停提示
-- 游戏结束面板（最终分数、最高分、统计、重新开始）
-
-## 快速开始
-
-### 1. 安装 Godot
-从 https://godotengine.org/ 下载并安装 Godot 4.x
-
-### 2. 打开项目
-启动 Godot → 点击 "Import" → 选择 godot-demo 文件夹
-
-### 3. 创建场景（在 Godot 编辑器中）
-
-**主场景 (main.tscn):**
-```
-MainScene (Node2D)
-├── Player (场景引用 player.tscn)
-├── LevelGenerator (场景引用 level_generator.tscn)
-├── DungeonGenerator (场景引用 dungeon_generator.tscn)
-├── Collectible × 多个
-├── Enemy × 多个
-├── PowerUp × 多个
-└── HUD (场景引用 hud.tscn)
-```
-
-**玩家场景 (player.tscn):**
-```
-Player (CharacterBody2D)
-├── Sprite2D          - 显示玩家图片
-└── CollisionShape2D  - 矩形碰撞体
-```
-
-**收集品场景 (collectible.tscn):**
-```
-Collectible (Area2D)
-├── Sprite2D          - 显示金币/道具图片
-└── CollisionShape2D  - 圆形碰撞体
-```
-
-**敌人场景 (enemy.tscn):**
-```
-Enemy (CharacterBody2D)
-├── Sprite2D          - 显示敌人图片
-├── CollisionShape2D  - 矩形碰撞体
-└── CollisionArea (Area2D)
-    └── CollisionShape2D - 圆形碰撞体
-```
-
-**HUD 场景 (hud.tscn):**
-```
-HUD (CanvasLayer)
-├── ScoreLabel (Label)
-├── HealthLabel (Label)
-├── LevelLabel (Label)
-├── EffectsLabel (Label)
-├── PanelGameOver (Panel)
-│   ├── FinalScoreLabel (Label)
-│   ├── HighScoreLabel (Label)
-│   ├── RestartHintLabel (Label)
-│   └── StatsLabel (Label)
-```
-
-### 4. 链接脚本
-在 Godot 编辑器中，选中对应节点 → 右侧面板 → "Attach Script"
-
-### 5. 运行
-点击编辑器顶部的绿色三角按钮，或按 F5
-
-### 6. 操作说明
-| 按键 | 功能 |
-|---|---|
-| ← → | 左右移动 |
-| 空格 | 跳跃 |
-| ESC | 暂停/继续 |
-| Enter | 游戏结束后重新开始 |
-
-## 技术要点
-
-### AutoLoad 单例
-GameData, GameState, AudioManager, ParticleManager, SaveManager 都在 project.godot 中注册为 AutoLoad，游戏任意脚本可直接通过 `GameData.xxx` 访问。
-
-### 信号系统
-- GameData → score_changed, health_changed
-- GameState → state_changed, level_changed, game_over
-- HUD 连接这些信号，自动更新显示
-
-### 存档持久化
-- 使用 `user://` 目录保存 JSON 文件
-- 自动保存：最高分、关卡进度、游玩统计、音量设置
-- 手动保存：按特定键触发
-
-## 下一步扩展方向
-
-### 短期
-1. 添加真实音效文件（替换占位）
-2. 添加像素美术资源
-3. 添加行走/跳跃/受伤动画
-4. 添加关卡过渡动画
-
-### 中期（Roguelike 深化）
-1. 多房间地下城（BSP 算法）
-2. 局内成长系统（升级、技能树）
-3. 道具/技能组合系统
-4. 掉落池设计和权重
-
-### 长期
-1. 关卡选择/进度系统
-2. 成就系统
-3. 多人合作/对抗模式
-4. 发布到 itch.io / Steam
-
-## 常见问题
-
-### Q: 如何改变移动速度？
-A: 修改 player.gd 中的 SPEED 常量
-
-### Q: 如何改变跳跃高度？
-A: 修改 player.gd 中的 JUMP_VELOCITY
-
-### Q: 如何调整地图难度？
-A: 在 Godot 编辑器中选中 LevelGenerator/DungeonGenerator，调整:
-- obstacle_probability: 障碍物概率
-- enemy_count: 敌人数量
-- collectible_count: 收集品数量
-
-### Q: 如何添加新道具类型？
-A: 在 power_up.gd 的 PowerUpType 枚举中添加新类型，然后在 _activate_power_up() 中添加对应逻辑
-
-### Q: 存档文件在哪里？
-A: Linux 下位于 `~/.local/share/godot/app_userdata/GodotDemo/savegame.json`
-
-## 许可证
-MIT License - 可自由用于个人和商业项目
+- [架构说明](docs/architecture.md)
+- [开发指南](docs/development-guide.md)
+- [GDScript 约定](docs/gdscript-guide.md)
+- [后续计划](docs/next-steps.md)

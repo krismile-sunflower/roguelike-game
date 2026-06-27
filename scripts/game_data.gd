@@ -1,54 +1,130 @@
-# GameData - 全局游戏数据单例
-# 用途：管理玩家生命值、分数等全局状态
-# 通过 AutoLoad 机制，游戏任意脚本都可通过 GameData 访问这些数据
 extends Node
 
-# ==================== 属性 ====================
-
-# 玩家当前生命值（默认 3）
-# 使用 setter 确保值在 0-3 范围内，并在变化时发出信号通知 UI
-var player_health: int = 3:
-    set(val):
-        player_health = clamp(val, 0, 3)  # 限制在 0 到 3 之间
-        health_changed.emit(player_health)  # 发出变化信号
-        if player_health <= 0:
-            print("游戏结束！")
-
-# 玩家当前分数（默认 0）
-# 使用 setter 确保值非负，并在变化时发出信号通知 UI
-var score: int = 0:
-    set(val):
-        score = max(0, val)  # 分数不能为负数
-        score_changed.emit(score)  # 发出变化信号
-
-# ==================== 信号 ====================
-
-# 当分数变化时发出，参数为新分数
+signal level_progress_changed(current_level_index: int, completed_count: int, total_levels: int)
+signal hint_count_changed(hint_count: int)
 signal score_changed(new_score: int)
-
-# 当生命值变化时发出，参数为新生命值
 signal health_changed(new_health: int)
+signal tutorial_state_changed(has_seen_tutorial: bool)
 
-# ==================== 方法 ====================
+var current_level_index: int = 0
+var total_levels: int = 0
+var completed_levels: Array[bool] = []
+var hint_count: int = 0
+var level_start_time_msec: int = 0
+var score: int = 0
+var player_health: int = 3
+var has_seen_tutorial: bool = false
 
-# 增加分数
-# 参数 amount: 每次增加的分数（默认 1）
-func add_score(amount: int = 1) -> void:
-    score += amount  # 直接修改 score，触发 setter 中的信号
-    print("得分 +", amount, "，当前总分:", score)
 
-# 受到伤害，减少生命值
-# 参数 amount: 每次扣除的生命值（默认 1）
-func take_damage(amount: int = 1) -> void:
-    player_health -= amount  # 直接修改 player_health，触发 setter 中的信号
+func configure_levels(count: int) -> void:
+	total_levels = maxi(count, 0)
+	completed_levels.resize(total_levels)
+	for i in range(completed_levels.size()):
+		if typeof(completed_levels[i]) != TYPE_BOOL:
+			completed_levels[i] = false
+	_emit_progress()
 
-# 恢复生命值
-# 参数 amount: 恢复的生命值（默认 1）
-func heal(amount: int = 1) -> void:
-    player_health += amount  # 直接修改 player_health，触发 setter 中的信号
 
-# 重置游戏数据到初始状态
+func restore_progress(saved_completed_levels: Array, last_level_index: int, saved_hint_count: int, saved_has_seen_tutorial: bool = false) -> void:
+	if total_levels <= 0:
+		return
+
+	var restored: Array[bool] = []
+	restored.resize(total_levels)
+	for i in range(total_levels):
+		var value := false
+		if i < saved_completed_levels.size():
+			value = bool(saved_completed_levels[i])
+		restored[i] = value
+
+	completed_levels = restored
+	current_level_index = clampi(last_level_index, 0, maxi(total_levels - 1, 0))
+	hint_count = maxi(saved_hint_count, 0)
+	has_seen_tutorial = saved_has_seen_tutorial
+	hint_count_changed.emit(hint_count)
+	tutorial_state_changed.emit(has_seen_tutorial)
+	_emit_progress()
+
+
+func start_level(level_index: int) -> void:
+	current_level_index = clampi(level_index, 0, maxi(total_levels - 1, 0))
+	level_start_time_msec = Time.get_ticks_msec()
+	_emit_progress()
+
+
+func complete_level(level_index: int) -> void:
+	if level_index >= 0 and level_index < completed_levels.size():
+		completed_levels[level_index] = true
+	current_level_index = clampi(level_index, 0, maxi(total_levels - 1, 0))
+	_emit_progress()
+
+
+func reset_hint_count() -> void:
+	hint_count = 0
+	hint_count_changed.emit(hint_count)
+
+
+func register_hint() -> void:
+	hint_count += 1
+	hint_count_changed.emit(hint_count)
+
+
+func reset_progress() -> void:
+	current_level_index = 0
+	hint_count = 0
+	level_start_time_msec = 0
+	completed_levels.resize(total_levels)
+	for i in range(completed_levels.size()):
+		completed_levels[i] = false
+	hint_count_changed.emit(hint_count)
+	_emit_progress()
+
+
+func set_current_level(level_index: int) -> void:
+	current_level_index = clampi(level_index, 0, maxi(total_levels - 1, 0))
+	_emit_progress()
+
+
+func mark_tutorial_seen() -> void:
+	has_seen_tutorial = true
+	tutorial_state_changed.emit(has_seen_tutorial)
+
+
 func reset() -> void:
-    player_health = 3
-    score = 0
-    print("游戏数据已重置")
+	score = 0
+	player_health = 3
+	score_changed.emit(score)
+	health_changed.emit(player_health)
+
+
+func add_score(amount: int) -> void:
+	score = maxi(score + amount, 0)
+	score_changed.emit(score)
+
+
+func take_damage(amount: int = 1) -> void:
+	player_health = maxi(player_health - amount, 0)
+	health_changed.emit(player_health)
+
+
+func heal(amount: int = 1) -> void:
+	player_health = mini(player_health + amount, 3)
+	health_changed.emit(player_health)
+
+
+func get_completed_count() -> int:
+	var count := 0
+	for is_completed in completed_levels:
+		if is_completed:
+			count += 1
+	return count
+
+
+func get_level_elapsed_seconds() -> float:
+	if level_start_time_msec <= 0:
+		return 0.0
+	return float(Time.get_ticks_msec() - level_start_time_msec) / 1000.0
+
+
+func _emit_progress() -> void:
+	level_progress_changed.emit(current_level_index, get_completed_count(), total_levels)

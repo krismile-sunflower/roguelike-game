@@ -1,152 +1,178 @@
-# HUD - 抬头显示界面
-# 显示分数、生命值、道具效果、关卡信息和最高分
-# 通过监听 GameData 和 GameState 的信号来实时更新 UI
 extends CanvasLayer
 
-# ==================== 节点引用 ====================
+const TEXT_DEFAULT_TITLE := "\u6574\u7406\u5b8c\u6210"
+const TEXT_DEFAULT_GOAL := "\u8f7b\u6309\u9f20\u6807\uff0c\u628a\u7269\u54c1\u653e\u56de\u5b83\u8be5\u5728\u7684\u4f4d\u7f6e\u3002"
+const TEXT_HINT_BUTTON := "\u63d0\u793a"
+const TEXT_HELP_BUTTON := "\u5e2e\u52a9"
+const TEXT_RESET_BUTTON := "\u91cd\u7f6e"
 
-# 分数显示标签
-@onready var label_score: Label = $ScoreLabel
-
-# 生命值显示标签
-@onready var label_health: Label = $HealthLabel
-
-# 关卡显示标签
-@onready var label_level: Label = $LevelLabel
-
-# 道具效果显示标签
-@onready var label_effects: Label = $EffectsLabel
-
-# 游戏结束信息面板
-@onready var panel_game_over: Panel = $PanelGameOver
-
-# 游戏结束分数标签
-@onready var label_final_score: Label = $PanelGameOver/FinalScoreLabel
-
-# 游戏结束最高分标签
-@onready var label_high_score: Label = $PanelGameOver/HighScoreLabel
-
-# 游戏结束提示标签
-@onready var label_restart_hint: Label = $PanelGameOver/RestartHintLabel
-
-# 统计信息标签
-@onready var label_stats: Label = $PanelGameOver/StatsLabel
+@onready var title_label: Label = $TopBar/TitleLabel
+@onready var goal_label: Label = $TopBar/GoalLabel
+@onready var progress_label: Label = $TopBar/ProgressLabel
+@onready var level_label: Label = $TopBar/LevelLabel
+@onready var hint_label: Label = $TopBar/HintLabel
+@onready var status_label: Label = $BottomBar/StatusLabel
+@onready var hint_button: Button = $BottomBar/HintButton
+@onready var help_button: Button = $BottomBar/HelpButton
+@onready var reset_button: Button = $BottomBar/ResetButton
 
 
-# ==================== 生命周期 ====================
-
-# 场景初始化
 func _ready() -> void:
-    # 连接全局数据信号
-    GameData.score_changed.connect(_on_score_changed)
-    GameData.health_changed.connect(_on_health_changed)
+	_apply_styles()
+	_set_static_copy()
+	hint_button.pressed.connect(_on_hint_button_pressed)
+	help_button.pressed.connect(_on_help_button_pressed)
+	reset_button.pressed.connect(_on_reset_button_pressed)
 
-    # 连接游戏状态信号
-    GameState.state_changed.connect(_on_state_changed)
-    GameState.level_changed.connect(_on_level_changed)
-    GameState.game_over.connect(_on_game_over)
+	GameState.state_changed.connect(_on_state_changed)
+	GameState.level_changed.connect(_on_level_changed)
+	GameState.level_completed.connect(_on_level_completed)
+	GameData.level_progress_changed.connect(_on_level_progress_changed)
+	GameData.hint_count_changed.connect(_on_hint_count_changed)
 
-    # 初始化显示
-    _update_display()
-
-    # 游戏结束时隐藏面板
-    panel_game_over.visible = false
-
-    print("HUD 界面已就绪")
-
-
-# 每帧更新（用于实时更新道具效果）
-func _process(delta: float) -> void:
-    # 如果游戏正在进行，更新道具效果显示
-    if GameState.current_state == GameState.Playing:
-        _update_effects_display()
+	_connect_scene_signals()
+	_on_state_changed(GameState.current_state)
+	_on_level_progress_changed(
+		GameData.current_level_index,
+		GameData.get_completed_count(),
+		GameData.total_levels
+	)
+	_on_hint_count_changed(GameData.hint_count)
 
 
-# ==================== 公共方法 ====================
+func _connect_scene_signals() -> void:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
 
-# 更新所有显示内容
-func _update_display() -> void:
-    label_score.text = "分数: %d" % GameData.score
-    label_health.text = "生命: %d" % GameData.player_health
-    label_level.text = "关卡: %d" % GameState.current_level
+	if scene.has_signal("level_loaded") and not scene.level_loaded.is_connected(_on_level_loaded):
+		scene.level_loaded.connect(_on_level_loaded)
 
+	if scene.has_signal("placement_progress_changed") and not scene.placement_progress_changed.is_connected(_on_placement_progress_changed):
+		scene.placement_progress_changed.connect(_on_placement_progress_changed)
 
-# 更新道具效果显示
-func _update_effects_display() -> void:
-    pass  # 可扩展为显示当前激活的道具图标
-
-
-# 显示游戏结束信息
-func show_game_over(final_score: int) -> void:
-    panel_game_over.visible = true
-
-    # 显示最终分数
-    label_final_score.text = "最终分数: %d" % final_score
-
-    # 显示最高分
-var hs = SaveManager.get_high_score() if SaveManager else 0
-
-    label_high_score.text = "最高分: %hs" % hs
-
-    # 显示重新开始提示
-    label_restart_hint.text = "按 Enter 重新开始"
-
-    # 显示统计数据
-    if SaveManager:
-var stats = SaveManager.get_play_stats()
-
-        label_stats.text = "游戏次数: %d | 胜利: %d | 总时长: %.0f秒" % [
-            stats.games_played, stats.games_won, stats.total_play_time
-        ]
+	if scene.has_method("get_current_level_data"):
+		var level_data: Dictionary = scene.get_current_level_data()
+		if not level_data.is_empty():
+			_on_level_loaded(level_data)
 
 
-# 隐藏游戏结束信息
-func hide_game_over() -> void:
-    panel_game_over.visible = false
+func _on_level_loaded(level_data: Dictionary) -> void:
+	title_label.text = str(level_data.get("title", TEXT_DEFAULT_TITLE))
+	goal_label.text = str(level_data.get("goal", TEXT_DEFAULT_GOAL))
+	var scene := get_tree().current_scene
+	if scene != null and scene.has_method("_emit_progress"):
+		scene._emit_progress()
 
 
-# ==================== 信号回调 ====================
-
-# 分数变化时调用
-func _on_score_changed(new_score: int) -> void:
-    label_score.text = "分数: %d" % new_score
+func _on_placement_progress_changed(placed_count: int, total_count: int) -> void:
+	progress_label.text = "\u5df2\u5f52\u4f4d %d / %d" % [placed_count, total_count]
 
 
-# 生命值变化时调用
-func _on_health_changed(new_health: int) -> void:
-    label_health.text = "生命: %d" % new_health
-
-    # 生命值归零时触发游戏结束（由 GameState 处理）
+func _on_level_progress_changed(current_level_index: int, completed_count: int, total_levels: int) -> void:
+	level_label.text = "\u7b2c %d \u5173 / \u5171 %d \u5173" % [current_level_index + 1, maxi(total_levels, 1)]
+	status_label.text = "\u5df2\u5b8c\u6210 %d / %d \u4e2a\u573a\u666f" % [completed_count, total_levels]
 
 
-# 游戏状态变化时调用
+func _on_hint_count_changed(hint_count: int) -> void:
+	hint_label.text = "\u63d0\u793a\u6b21\u6570\uff1a%d" % hint_count
+
+
 func _on_state_changed(new_state: int) -> void:
-    match new_state:
-        GameState.State.PLAYING:
-            panel_game_over.visible = false
-            label_effects.text = ""
-        GameState.State.PAUSED:
-            label_effects.text = "⏸ 已暂停"
-        GameState.State.GAME_OVER:
-            # 游戏结束由 _on_game_over 处理
-            pass
-        GameState.State.IDLE:
-            label_effects.text = ""
+	match new_state:
+		GameState.State.MENU:
+			status_label.text = "\u6b22\u8fce\u56de\u6765\u3002"
+		GameState.State.INSTRUCTIONS:
+			status_label.text = "\u8f7b\u8f7b\u770b\u4e00\u773c\u8bf4\u660e\uff0c\u518d\u5f00\u59cb\u4e5f\u4e0d\u8fdf\u3002"
+		GameState.State.PLAYING:
+			status_label.text = "\u5148\u628a\u773c\u524d\u7684\u5c0f\u7269\u4ef6\u6574\u7406\u59a5\u5f53\u5427\u3002"
+		GameState.State.PAUSED:
+			status_label.text = "\u6682\u505c\u4e2d"
+		GameState.State.COMPLETED:
+			status_label.text = "\u8fd9\u4e00\u5173\u5df2\u7ecf\u6536\u62fe\u597d\u4e86\u3002"
 
 
-# 关卡变化时调用
-func _on_level_changed(level_number: int) -> void:
-    label_level.text = "关卡: %d" % level_number
-
-    # 播放关卡开始音效
-    if AudioManager:
-        AudioManager.play_sound("level_start")
+func _on_level_changed(level_index: int) -> void:
+	level_label.text = "\u7b2c %d \u5173 / \u5171 %d \u5173" % [level_index + 1, maxi(GameData.total_levels, 1)]
+	_connect_scene_signals()
 
 
-# 游戏结束时调用
-func _on_game_over(final_score: int) -> void:
-    show_game_over(final_score)
+func _on_level_completed(_level_index: int) -> void:
+	status_label.text = "\u8fd9\u4e00\u5173\u5df2\u7ecf\u6536\u62fe\u597d\u4e86\u3002"
 
-    # 播放游戏结束音效
-    if AudioManager:
-        AudioManager.play_sound("game_over")
+
+func _on_hint_button_pressed() -> void:
+	var scene := get_tree().current_scene
+	if scene != null and scene.has_method("show_hint"):
+		scene.show_hint()
+
+
+func _on_help_button_pressed() -> void:
+	var scene := get_tree().current_scene
+	if scene != null and scene.has_method("show_instructions"):
+		scene.show_instructions()
+
+
+func _on_reset_button_pressed() -> void:
+	var scene := get_tree().current_scene
+	if scene != null and scene.has_method("reset_level"):
+		scene.reset_level()
+
+
+func _set_static_copy() -> void:
+	title_label.text = TEXT_DEFAULT_TITLE
+	goal_label.text = TEXT_DEFAULT_GOAL
+	progress_label.text = "\u5df2\u5f52\u4f4d 0 / 0"
+	level_label.text = "\u7b2c 1 \u5173 / \u5171 3 \u5173"
+	hint_label.text = "\u63d0\u793a\u6b21\u6570\uff1a0"
+	status_label.text = "\u8f7b\u6309\u9f20\u6807\uff0c\u628a\u7269\u54c1\u653e\u56de\u5b83\u8be5\u5728\u7684\u4f4d\u7f6e\u3002"
+	hint_button.text = TEXT_HINT_BUTTON
+	help_button.text = TEXT_HELP_BUTTON
+	reset_button.text = TEXT_RESET_BUTTON
+
+
+func _apply_styles() -> void:
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.985, 0.965, 0.93, 0.9)
+	panel_style.corner_radius_top_left = 24
+	panel_style.corner_radius_top_right = 24
+	panel_style.corner_radius_bottom_right = 24
+	panel_style.corner_radius_bottom_left = 24
+	panel_style.border_width_left = 2
+	panel_style.border_width_top = 2
+	panel_style.border_width_right = 2
+	panel_style.border_width_bottom = 2
+	panel_style.border_color = Color(0.56, 0.47, 0.39, 0.22)
+	panel_style.shadow_color = Color(0.2, 0.16, 0.12, 0.1)
+	panel_style.shadow_size = 8
+
+	$TopBar.add_theme_stylebox_override("panel", panel_style)
+	$BottomBar.add_theme_stylebox_override("panel", panel_style)
+
+	var button_style := StyleBoxFlat.new()
+	button_style.bg_color = Color(0.79, 0.66, 0.52, 1.0)
+	button_style.corner_radius_top_left = 18
+	button_style.corner_radius_top_right = 18
+	button_style.corner_radius_bottom_right = 18
+	button_style.corner_radius_bottom_left = 18
+	button_style.border_width_left = 2
+	button_style.border_width_top = 2
+	button_style.border_width_right = 2
+	button_style.border_width_bottom = 2
+	button_style.border_color = Color(0.43, 0.33, 0.25, 0.2)
+
+	var button_hover := button_style.duplicate()
+	button_hover.bg_color = Color(0.88, 0.76, 0.61, 1.0)
+
+	for button in [hint_button, help_button, reset_button]:
+		button.add_theme_stylebox_override("normal", button_style)
+		button.add_theme_stylebox_override("hover", button_hover)
+		button.add_theme_stylebox_override("pressed", button_hover)
+		button.add_theme_color_override("font_color", Color(0.25, 0.18, 0.13, 1.0))
+
+	title_label.add_theme_color_override("font_color", Color(0.28, 0.2, 0.15, 1.0))
+	goal_label.add_theme_color_override("font_color", Color(0.36, 0.28, 0.21, 0.84))
+	progress_label.add_theme_color_override("font_color", Color(0.36, 0.28, 0.21, 0.84))
+	level_label.add_theme_color_override("font_color", Color(0.36, 0.28, 0.21, 0.84))
+	hint_label.add_theme_color_override("font_color", Color(0.36, 0.28, 0.21, 0.84))
+	status_label.add_theme_color_override("font_color", Color(0.34, 0.26, 0.19, 0.92))

@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://b7c1687v77aea"]
+
+[ext_resource type="Script" path="res://scripts/drop_target.gd" id="1_target"]
+
+[node name="DropTarget" type="Node2D"]
+script = ExtResource("1_target")
