@@ -24,6 +24,7 @@ var bgm_presets: Dictionary = {
     "game_over": "res://assets/audio/bgm/game_over.ogg",
 }
 
+
 # ==================== 节点引用 ====================
 
 # 音效播放器组（每个音效一个独立的 AudioStreamPlayer）
@@ -52,8 +53,7 @@ var bgm_enabled: bool = true
 func _ready() -> void:
     # 为每个预设音效创建一个 AudioStreamPlayer
     for key in sfx_presets:
-var player = AudioStreamPlayer.new()
-
+        var player: AudioStreamPlayer = AudioStreamPlayer.new()
         player.bus = "SFX"  # 使用 SFX 混音轨道
         player.stream = load(sfx_presets[key]) if sfx_presets[key] != "" else null
         player.volume_db = linear_to_db(sfx_volume)
@@ -104,7 +104,7 @@ func play_bgm(bgm_key: String, fade_in_seconds: float = 0.0) -> void:
         return
 
     if bgm_key in bgm_presets:
-var stream = load(bgm_presets[bgm_key]) if bgm_presets[bgm_key] != "" else null
+        var stream: AudioStream = load(bgm_presets[bgm_key]) if bgm_presets[bgm_key] != "" else null
 
         if stream:
             # 如果正在播放同一首，不重复播放
@@ -128,8 +128,7 @@ var stream = load(bgm_presets[bgm_key]) if bgm_presets[bgm_key] != "" else null
             # 淡入效果
             if fade_in_seconds > 0:
                 current_bgm_player.volume_db = linear_to_db(0.0)
-var tween = create_tween()
-
+                var tween: Tween = create_tween()
                 tween.tween_property(current_bgm_player, "volume_db", linear_to_db(bgm_volume), fade_in_seconds)
 
 
@@ -138,8 +137,7 @@ func stop_bgm(fade_out_seconds: float = 0.0) -> void:
     if current_bgm_player:
         if fade_out_seconds > 0:
             # 淡出效果
-var tween = create_tween()
-
+            var tween: Tween = create_tween()
             tween.tween_property(current_bgm_player, "volume_db", linear_to_db(0.0), fade_out_seconds)
             tween.tween_callback(func(): current_bgm_player.stop())
         else:
@@ -181,19 +179,17 @@ func toggle_bgm(enabled: bool) -> void:
 
 # 保存音量设置到本地
 func save_volume_settings() -> void:
-var settings = {
-
+    var settings: Dictionary = {
         "sfx_volume": sfx_volume,
         "bgm_volume": bgm_volume,
         "sfx_enabled": sfx_enabled,
         "bgm_enabled": bgm_enabled,
     }
-var json_str = JSON.stringify(settings)
+    var json_str: String = JSON.stringify(settings)
 
     # 保存到用户数据目录
-var save_path = "user://audio_settings.json"
-
-var file = FileAccess.open(save_path, FileAccess.WRITE)
+    var save_path: String = "user://audio_settings.json"
+    var file: FileAccess = FileAccess.open(save_path, FileAccess.WRITE)
 
     if file:
         file.store_string(json_str)
@@ -203,16 +199,16 @@ var file = FileAccess.open(save_path, FileAccess.WRITE)
 
 # 从本地加载音量设置
 func load_volume_settings() -> void:
-var save_path = "user://audio_settings.json"
+    var save_path: String = "user://audio_settings.json"
 
     if FileAccess.file_exists(save_path):
-var file = FileAccess.open(save_path, FileAccess.READ)
+        var file: FileAccess = FileAccess.open(save_path, FileAccess.READ)
 
         if file:
-var json_str = file.get_as_text()
+            var json_str: String = file.get_as_text()
 
             file.close()
-var settings = JSON.parse_string(json_str)
+            var settings: Variant = JSON.parse_string(json_str)
 
             if settings is Dictionary:
                 sfx_volume = settings.get("sfx_volume", 1.0)
