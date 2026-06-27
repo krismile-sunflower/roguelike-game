@@ -45,10 +45,12 @@ func save_all() -> void:
     save_data["last_save_time"] = Time.get_unix_time_from_system()
 
     # 序列化为 JSON
-    var json_str := JSON.stringify(save_data, "\t")  # 带缩进，方便阅读
+var json_str = JSON.stringify(save_data, "\t")  # 带缩进，方便阅读
+
 
     # 写入文件
-    var file := FileAccess.open(save_path, FileAccess.WRITE)
+var file = FileAccess.open(save_path, FileAccess.WRITE)
+
     if file:
         file.store_string(json_str)
         file.close()
@@ -94,16 +96,19 @@ func load_save() -> bool:
         _reset_save_data()
         return false
 
-    var file := FileAccess.open(save_path, FileAccess.READ)
+var file = FileAccess.open(save_path, FileAccess.READ)
+
     if not file:
         push_error("无法读取存档文件")
         return false
 
-    var json_str := file.get_as_text()
+var json_str = file.get_as_text()
+
     file.close()
 
     # 解析 JSON
-    var parsed := JSON.parse_string(json_str)
+var parsed = JSON.parse_string(json_str)
+
     if parsed is Dictionary:
         # 合并数据（保留新字段）
         _merge_save_data(parsed)
@@ -162,7 +167,8 @@ func export_save_string() -> String:
 
 # 导入存档数据（从字符串）
 func import_save_string(json_str: String) -> bool:
-    var parsed := JSON.parse_string(json_str)
+var parsed = JSON.parse_string(json_str)
+
     if parsed is Dictionary:
         _merge_save_data(parsed)
         save_all()

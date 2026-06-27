@@ -73,7 +73,8 @@ func _process(delta: float) -> void:
 
 # 设置游戏状态
 func set_state(new_state: GameState) -> void:
-    var old_state := current_state
+var old_state = current_state
+
     current_state = new_state
     state_changed.emit(current_state)
 

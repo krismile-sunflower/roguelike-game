@@ -123,28 +123,36 @@ func are_all_rooms_clean() -> bool:
 # 生成所有房间
 func _generate_rooms() -> void:
     rooms_generated = 0
-    var attempts := 0
-    var max_attempts := total_rooms * 20  # 防止无限循环
+var attempts = 0
+
+var max_attempts = total_rooms * 20  # 防止无限循环
+
 
     while rooms_generated < total_rooms and attempts < max_attempts:
         attempts += 1
 
         # 随机房间尺寸
-        var rw := randi() % (max_room_width - min_room_width + 1) + min_room_width
-        var rh := randi() % (max_room_height - min_room_height + 1) + min_room_height
+var rw = randi() % (max_room_width - min_room_width + 1) + min_room_width
+
+var rh = randi() % (max_room_height - min_room_height + 1) + min_room_height
+
 
         # 随机位置（留出边距）
-        var rx := randi() % (1200 - rw * cell_size)
-        var ry := randi() % (800 - rh * cell_size)
+var rx = randi() % (1200 - rw * cell_size)
 
-        var new_room := Rect2(rx, ry, rw * cell_size, rh * cell_size)
+var ry = randi() % (800 - rh * cell_size)
+
+
+var new_room = Rect2(rx, ry, rw * cell_size, rh * cell_size)
+
 
         # 检查是否与现有房间重叠
         if _overlaps_any_room(new_room):
             continue
 
         # 创建房间节点
-        var room := Room.new()
+var room = Room.new()
+
         room.room_id = rooms_generated
         room.width = rw
         room.height = rh
@@ -159,7 +167,8 @@ func _generate_rooms() -> void:
             exit_room = room
         else:
             # 随机类型
-            var type_roll := randi() % 100
+var type_roll = randi() % 100
+
             if type_roll < 50:
                 room.room_type = Room.RoomType.NORMAL
             elif type_roll < 70:
@@ -180,7 +189,8 @@ func _generate_rooms() -> void:
 func _overlaps_any_room(rect: Rect2) -> bool:
     for room in rooms:
         if room is Room:
-            var room_rect := Rect2(
+var room_rect = Rect2(
+
                 room.position.x - room.width * room.cell_size / 2,
                 room.position.y - room.height * room.cell_size / 2,
                 room.width * room.cell_size,
@@ -200,8 +210,10 @@ func _connect_rooms() -> void:
 
     # 按生成顺序依次连接相邻房间
     for i in range(rooms.size() - 1):
-        var room_a := rooms[i] as Room
-        var room_b := rooms[i + 1] as Room
+var room_a = rooms[i] as Room
+
+var room_b = rooms[i + 1] as Room
+
 
         if room_a and room_b:
             # 创建连接
@@ -211,8 +223,10 @@ func _connect_rooms() -> void:
             })
 
             # 设置出口标志
-            var dx := room_b.position.x - room_a.position.x
-            var dy := room_b.position.y - room_a.position.y
+var dx = room_b.position.x - room_a.position.x
+
+var dy = room_b.position.y - room_a.position.y
+
 
             if abs(dx) > abs(dy):
                 # 水平连接
@@ -238,7 +252,8 @@ func _connect_rooms() -> void:
 # 绘制房间间的走廊
 func _draw_corridor(from: Vector2, to: Vector2) -> void:
     # 简单的 L 形走廊
-    var mid := Vector2(to.x, from.y)
+var mid = Vector2(to.x, from.y)
+
 
     # 走廊线段 1：from -> mid
     _line(from, mid, Color(0.2, 0.2, 0.2))
@@ -248,15 +263,20 @@ func _draw_corridor(from: Vector2, to: Vector2) -> void:
 
 # 绘制一条线（走廊可视化）
 func _line(from: Vector2, to: Vector2, color: Color) -> void:
-    var length := from.distance_to(to)
+var length = from.distance_to(to)
+
     if length < 10:
         return
 
-    var segments := int(length / cell_size)
+var segments = int(length / cell_size)
+
     for i in segments:
-        var t := float(i) / float(segments)
-        var pos := from.lerp(to, t)
-        var block := ColorRect.new()
+var t = float(i) / float(segments)
+
+var pos = from.lerp(to, t)
+
+var block = ColorRect.new()
+
         block.size = Vector2(cell_size, cell_size)
         block.color = color
         block.position = pos - Vector2(cell_size / 2, cell_size / 2)
@@ -269,7 +289,8 @@ func _line(from: Vector2, to: Vector2, color: Color) -> void:
 func _setup_spawn_and_exit(player: CharacterBody2D) -> void:
     if rooms.size() > 0:
         # 出生点在第一个房间（START 房间）中心
-        var start_room := rooms[0] as Room
+var start_room = rooms[0] as Room
+
         if start_room:
             spawn_position = start_room.get_world_center()
             player.position = spawn_position
@@ -294,10 +315,14 @@ func _populate_rooms() -> void:
 # 在房间内获取随机空位
 func get_random_empty_cell_in_room(room: Room) -> Vector2i:
     """返回房间内的随机格子坐标"""
-    var half_w := room.width / 2
-    var half_h := room.height / 2
-    var x := randi() % room.width
-    var y := randi() % room.height
+var half_w = room.width / 2
+
+var half_h = room.height / 2
+
+var x = randi() % room.width
+
+var y = randi() % room.height
+
     return Vector2i(x, y)
 
 

@@ -124,7 +124,8 @@ func _activate_power_up() -> void:
 # 检查当前是否有活跃的效果
 func get_active_effects() -> Dictionary:
     """返回当前激活的效果列表"""
-    var effects := {}
+var effects = {}
+
 
     if shield_active:
         effects.shield = true
@@ -172,7 +173,8 @@ func _get_type_name() -> String:
 
 # 播放收集动画
 func _play_collect_animation() -> void:
-    var tween := create_tween()
+var tween = create_tween()
+
     tween.tween_property(self, "scale", Vector2(2.0, 2.0), 0.15)  # 快速放大
     tween.tween_property(self, "modulate:a", 0.0, 0.2)             # 淡出
     tween.tween_callback(queue_free)                                 # 销毁

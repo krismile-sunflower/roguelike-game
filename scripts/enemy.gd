@@ -71,7 +71,8 @@ func _physics_process(delta: float) -> void:
         return  # 已销毁，不再处理
 
     # 计算当前X坐标相对于初始位置的距离
-    var distance_from_start := position.x - start_position
+var distance_from_start = position.x - start_position
+
 
     # 到达巡逻边界时，反转方向
     if distance_from_start >= patrol_range:
@@ -136,7 +137,8 @@ func _play_hit_effect() -> void:
     is_alive = false  # 标记为已销毁
 
     # 创建闪烁动画
-    var tween := create_tween()
+var tween = create_tween()
+
     tween.tween_property(self, "modulate:a", 0.0, 0.3)  # 0.3秒内淡出
     tween.tween_callback(queue_free)  # 淡出后销毁
 

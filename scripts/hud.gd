@@ -84,7 +84,8 @@ func show_game_over(final_score: int) -> void:
     label_final_score.text = "最终分数: %d" % final_score
 
     # 显示最高分
-    var hs := SaveManager.get_high_score() if SaveManager else 0
+var hs = SaveManager.get_high_score() if SaveManager else 0
+
     label_high_score.text = "最高分: %hs" % hs
 
     # 显示重新开始提示
@@ -92,7 +93,8 @@ func show_game_over(final_score: int) -> void:
 
     # 显示统计数据
     if SaveManager:
-        var stats := SaveManager.get_play_stats()
+var stats = SaveManager.get_play_stats()
+
         label_stats.text = "游戏次数: %d | 胜利: %d | 总时长: %.0f秒" % [
             stats.games_played, stats.games_won, stats.total_play_time
         ]

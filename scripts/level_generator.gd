@@ -126,7 +126,8 @@ func can_place(x: int, y: int) -> bool:
 # 获取随机空地坐标（返回 Vector2i，x/y=-1 表示没有空地）
 func get_random_empty_cell() -> Vector2i:
     # 收集所有空地
-    var empty_cells := []
+var empty_cells = []
+
     for y in range(grid_height):
         for x in range(grid_width):
             if map_data[y][x] == 0:
@@ -141,10 +142,14 @@ func get_random_empty_cell() -> Vector2i:
 # 在房间内获取随机空位
 func get_random_empty_cell_in_room(room: Room) -> Vector2i:
     """返回房间网格内的随机坐标"""
-    var half_w := room.width / 2
-    var half_h := room.height / 2
-    var x := randi() % room.width
-    var y := randi() % room.height
+var half_w = room.width / 2
+
+var half_h = room.height / 2
+
+var x = randi() % room.width
+
+var y = randi() % room.height
+
     return Vector2i(x, y)
 
 
@@ -154,7 +159,8 @@ func get_random_empty_cell_in_room(room: Room) -> Vector2i:
 func _generate_map_data() -> void:
     map_data = []
     for y in range(grid_height):
-        var row := []
+var row = []
+
         for x in range(grid_width):
             # 边缘格子设为障碍物（围墙）
             if x == 0 or x == grid_width - 1 or y == 0 or y == grid_height - 1:
@@ -177,18 +183,22 @@ func _place_obstacles() -> void:
 
 # 创建单个障碍物视觉节点
 func _create_obstacle_visual(x: int, y: int) -> void:
-    var obstacle := StaticBody2D.new()
+var obstacle = StaticBody2D.new()
+
     obstacle.position = Vector2(x * cell_size + cell_size / 2, y * cell_size + cell_size / 2)
 
     # 添加碰撞形状
-    var collision := CollisionShape2D.new()
-    var shape := RectangleShape2D.new()
+var collision = CollisionShape2D.new()
+
+var shape = RectangleShape2D.new()
+
     shape.size = Vector2(cell_size - 4, cell_size - 4)
     collision.shape = shape
     obstacle.add_child(collision)
 
     # 添加视觉（灰色方块）
-    var sprite := Sprite2D.new()
+var sprite = Sprite2D.new()
+
     sprite.texture = _create_placeholder_texture(Color(0.4, 0.4, 0.4))
     sprite.position = Vector2(-cell_size / 2 + 2, -cell_size / 2 + 2)
     sprite.scale = Vector2(cell_size - 4, cell_size - 4)
@@ -200,11 +210,14 @@ func _create_obstacle_visual(x: int, y: int) -> void:
 
 # 放置收集品
 func _place_collectibles() -> void:
-    var placed := 0
-    var attempts := 0
+var placed = 0
+
+var attempts = 0
+
     while placed < collectible_count and attempts < 500:
         attempts += 1
-        var pos := get_random_empty_cell()
+var pos = get_random_empty_cell()
+
         if pos.x >= 0 and pos.y >= 0:
             _create_collectible(pos.x, pos.y)
             placed += 1
@@ -212,11 +225,14 @@ func _place_collectibles() -> void:
 
 # 放置敌人
 func _place_enemies() -> void:
-    var placed := 0
-    var attempts := 0
+var placed = 0
+
+var attempts = 0
+
     while placed < enemy_count and attempts < 500:
         attempts += 1
-        var pos := get_random_empty_cell()
+var pos = get_random_empty_cell()
+
         if pos.x >= 0 and pos.y >= 0:
             _create_enemy(pos.x, pos.y)
             placed += 1
@@ -224,11 +240,14 @@ func _place_enemies() -> void:
 
 # 放置道具
 func _place_powerups() -> void:
-    var placed := 0
-    var attempts := 0
+var placed = 0
+
+var attempts = 0
+
     while placed < powerup_count and attempts < 500:
         attempts += 1
-        var pos := get_random_empty_cell()
+var pos = get_random_empty_cell()
+
         if pos.x >= 0 and pos.y >= 0:
             _create_powerup(pos.x, pos.y)
             placed += 1
@@ -236,11 +255,13 @@ func _place_powerups() -> void:
 
 # 创建收集品实例
 func _create_collectible(grid_x: int, grid_y: int) -> void:
-    var collectible := Node2D.new()
+var collectible = Node2D.new()
+
     collectible.position = Vector2(grid_x * cell_size + cell_size / 2, grid_y * cell_size + cell_size / 2)
 
     # 添加视觉（黄色方块代表金币）
-    var sprite := Sprite2D.new()
+var sprite = Sprite2D.new()
+
     sprite.texture = _create_placeholder_texture(Color.YELLOW)
     sprite.position = Vector2(-16, -16)
     sprite.scale = Vector2(32, 32)
@@ -252,11 +273,13 @@ func _create_collectible(grid_x: int, grid_y: int) -> void:
 
 # 创建敌人实例
 func _create_enemy(grid_x: int, grid_y: int) -> void:
-    var enemy := Node2D.new()
+var enemy = Node2D.new()
+
     enemy.position = Vector2(grid_x * cell_size + cell_size / 2, grid_y * cell_size + cell_size / 2)
 
     # 添加视觉（红色方块代表敌人）
-    var sprite := Sprite2D.new()
+var sprite = Sprite2D.new()
+
     sprite.texture = _create_placeholder_texture(Color.RED)
     sprite.position = Vector2(-16, -16)
     sprite.scale = Vector2(32, 32)
@@ -268,11 +291,13 @@ func _create_enemy(grid_x: int, grid_y: int) -> void:
 
 # 创建道具实例
 func _create_powerup(grid_x: int, grid_y: int) -> void:
-    var powerup := Node2D.new()
+var powerup = Node2D.new()
+
     powerup.position = Vector2(grid_x * cell_size + cell_size / 2, grid_y * cell_size + cell_size / 2)
 
     # 添加视觉（紫色方块代表道具）
-    var sprite := Sprite2D.new()
+var sprite = Sprite2D.new()
+
     sprite.texture = _create_placeholder_texture(Color.MAGENTA)
     sprite.position = Vector2(-16, -16)
     sprite.scale = Vector2(32, 32)
@@ -285,7 +310,9 @@ func _create_powerup(grid_x: int, grid_y: int) -> void:
 # 创建占位纹理（用于测试，无需外部图片）
 func _create_placeholder_texture(color: Color) -> Texture2D:
     """创建一个纯色贴图作为占位符"""
-    var image := Image.create(cell_size, cell_size, false, Image.FORMAT_RGBA8)
+var image = Image.create(cell_size, cell_size, false, Image.FORMAT_RGBA8)
+
     image.fill(color)
-    var texture := ImageTexture.create_from_image(image)
+var texture = ImageTexture.create_from_image(image)
+
     return texture

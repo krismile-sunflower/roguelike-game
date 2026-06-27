@@ -24,14 +24,17 @@ func _ready() -> void:
 # 播放收集闪光效果
 # position: 粒子产生的世界坐标
 func play_collect_effect(position: Vector2) -> void:
-    var emitter := _create_emitter()
+var emitter = _create_emitter()
+
     emitter.position = position
 
     # 创建金色闪光粒子材质
-    var material := GPUParticles2D.create_material()
+var material = GPUParticles2D.create_material()
+
     material.set_process_material(_create_collect_material())
 
-    var particles := GPUParticles2D.new()
+var particles = GPUParticles2D.new()
+
     particles.process_material = material
     particles.one_shot = true
     particles.lifetime = 0.5
@@ -51,13 +54,16 @@ func play_collect_effect(position: Vector2) -> void:
 # 播放受伤火花效果
 # position: 粒子产生的世界坐标
 func play_hurt_effect(position: Vector2) -> void:
-    var emitter := _create_emitter()
+var emitter = _create_emitter()
+
     emitter.position = position
 
-    var material := GPUParticles2D.create_material()
+var material = GPUParticles2D.create_material()
+
     material.set_process_material(_create_hurt_material())
 
-    var particles := GPUParticles2D.new()
+var particles = GPUParticles2D.new()
+
     particles.process_material = material
     particles.one_shot = true
     particles.lifetime = 0.4
@@ -76,10 +82,12 @@ func play_hurt_effect(position: Vector2) -> void:
 # 播放敌人死亡爆炸效果
 # position: 粒子产生的世界坐标
 func play_enemy_die_effect(position: Vector2) -> void:
-    var material := GPUParticles2D.create_material()
+var material = GPUParticles2D.create_material()
+
     material.set_process_material(_create_explosion_material())
 
-    var particles := GPUParticles2D.new()
+var particles = GPUParticles2D.new()
+
     particles.process_material = material
     particles.one_shot = true
     particles.lifetime = 0.6
@@ -98,10 +106,12 @@ func play_enemy_die_effect(position: Vector2) -> void:
 # 播放道具出现效果
 # position: 粒子产生的世界坐标
 func play_powerup_appear_effect(position: Vector2) -> void:
-    var material := GPUParticles2D.create_material()
+var material = GPUParticles2D.create_material()
+
     material.set_process_material(_create_powerup_material())
 
-    var particles := GPUParticles2D.new()
+var particles = GPUParticles2D.new()
+
     particles.process_material = material
     particles.one_shot = true
     particles.lifetime = 0.8
@@ -121,7 +131,8 @@ func play_powerup_appear_effect(position: Vector2) -> void:
 
 # 收集闪光材质（金色粒子向外扩散）
 func _create_collect_material() -> ParticlesMaterial:
-    var material := ParticlesMaterial.new()
+var material = ParticlesMaterial.new()
+
     material.speed_scale = 1.0
     material.direction = Vector3.RIGHT
     material.spread = 360.0
@@ -140,7 +151,8 @@ func _create_collect_material() -> ParticlesMaterial:
 
 # 受伤火花材质（红色粒子向外飞溅）
 func _create_hurt_material() -> ParticlesMaterial:
-    var material := ParticlesMaterial.new()
+var material = ParticlesMaterial.new()
+
     material.speed_scale = 1.5
     material.direction = Vector3.RIGHT
     material.spread = 360.0
@@ -159,7 +171,8 @@ func _create_hurt_material() -> ParticlesMaterial:
 
 # 敌人爆炸材质（橙红色大爆发）
 func _create_explosion_material() -> ParticlesMaterial:
-    var material := ParticlesMaterial.new()
+var material = ParticlesMaterial.new()
+
     material.speed_scale = 2.0
     material.direction = Vector3.RIGHT
     material.spread = 360.0
@@ -183,7 +196,8 @@ func _create_explosion_material() -> ParticlesMaterial:
 
 # 道具出现材质（紫色粒子旋转上升）
 func _create_powerup_material() -> ParticlesMaterial:
-    var material := ParticlesMaterial.new()
+var material = ParticlesMaterial.new()
+
     material.speed_scale = 0.8
     material.direction = Vector3.UP
     material.spread = 120.0
@@ -202,7 +216,8 @@ func _create_powerup_material() -> ParticlesMaterial:
 
 # 创建颜色渐变
 func _create_color_ramp(colors: Array) -> Gradient:
-    var gradient := Gradient.new()
+var gradient = Gradient.new()
+
     for i in range(colors.size()):
         gradient.set_color(i, colors[i])
         gradient.set_offset(float(i) / float(colors.size() - 1))
@@ -211,7 +226,8 @@ func _create_color_ramp(colors: Array) -> Gradient:
 
 # 创建缩放曲线
 func _create_scale_curve(points: Array) -> Curve2D:
-    var curve := Curve2D.new()
+var curve = Curve2D.new()
+
     for i in range(0, points.size(), 2):
         curve.add_point(Vector2(points[i], points[i + 1]))
     return curve

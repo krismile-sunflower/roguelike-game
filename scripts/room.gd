@@ -117,7 +117,8 @@ func get_remaining_enemies() -> int:
 
 # 获取出口方向
 func get_exits() -> Array:
-    var exit_dirs := []
+var exit_dirs = []
+
     for dir in exits:
         if exits[dir]:
             exit_dirs.append(dir)
@@ -150,9 +151,11 @@ func _create_boundary() -> void:
     # 绘制房间边框
     boundary_sprite = Sprite2D.new()
     # 使用纯色占位（实际项目中可用边框贴图）
-    var image := Image.create(cell_size, cell_size, false, Image.FORMAT_RGBA8)
+var image = Image.create(cell_size, cell_size, false, Image.FORMAT_RGBA8)
+
     image.fill(Color(0.3, 0.3, 0.3, 0.5))
-    var texture := ImageTexture.create_from_image(image)
+var texture = ImageTexture.create_from_image(image)
+
     boundary_sprite.texture = texture
     boundary_sprite.position = Vector2(0, 0)
     boundary_sprite.scale = Vector2(width, height)
@@ -168,9 +171,11 @@ func _populate_start_room() -> void:
 # 填充普通房间
 func _populate_normal_room(level_generator: Node2D) -> void:
     # 随机放置 1-3 个敌人
-    var enemy_count := randi() % 3 + 1
+var enemy_count = randi() % 3 + 1
+
     for i in enemy_count:
-        var pos := level_generator.get_random_empty_cell_in_room(self)
+var pos = level_generator.get_random_empty_cell_in_room(self)
+
         if pos.x >= 0:
             enemies.append(pos)
 
