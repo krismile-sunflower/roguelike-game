@@ -8,18 +8,18 @@ extends Node
 # 玩家当前生命值（默认 3）
 # 使用 setter 确保值在 0-3 范围内，并在变化时发出信号通知 UI
 var player_health: int = 3:
-	set(val):
-		player_health = clamp(val, 0, 3)  # 限制在 0 到 3 之间
-		health_changed.emit(player_health)  # 发出变化信号
-		if player_health <= 0:
-			print("游戏结束！")
+    set(val):
+        player_health = clamp(val, 0, 3)  # 限制在 0 到 3 之间
+        health_changed.emit(player_health)  # 发出变化信号
+        if player_health <= 0:
+            print("游戏结束！")
 
 # 玩家当前分数（默认 0）
 # 使用 setter 确保值非负，并在变化时发出信号通知 UI
 var score: int = 0:
-	set(val):
-		score = max(0, val)  # 分数不能为负数
-		score_changed.emit(score)  # 发出变化信号
+    set(val):
+        score = max(0, val)  # 分数不能为负数
+        score_changed.emit(score)  # 发出变化信号
 
 # ==================== 信号 ====================
 
@@ -34,21 +34,21 @@ signal health_changed(new_health: int)
 # 增加分数
 # 参数 amount: 每次增加的分数（默认 1）
 func add_score(amount: int = 1) -> void:
-	score += amount  # 直接修改 score，触发 setter 中的信号
-	print("得分 +", amount, "，当前总分:", score)
+    score += amount  # 直接修改 score，触发 setter 中的信号
+    print("得分 +", amount, "，当前总分:", score)
 
 # 受到伤害，减少生命值
 # 参数 amount: 每次扣除的生命值（默认 1）
 func take_damage(amount: int = 1) -> void:
-	player_health -= amount  # 直接修改 player_health，触发 setter 中的信号
+    player_health -= amount  # 直接修改 player_health，触发 setter 中的信号
 
 # 恢复生命值
 # 参数 amount: 恢复的生命值（默认 1）
 func heal(amount: int = 1) -> void:
-	player_health += amount  # 直接修改 player_health，触发 setter 中的信号
+    player_health += amount  # 直接修改 player_health，触发 setter 中的信号
 
 # 重置游戏数据到初始状态
 func reset() -> void:
-	player_health = 3
-	score = 0
-	print("游戏数据已重置")
+    player_health = 3
+    score = 0
+    print("游戏数据已重置")
