@@ -1,6 +1,18 @@
-# 玩家场景文件
-# 包含角色、碰撞和动画结构
-# 节点层级:
-#   Player (CharacterBody2D)
-#   ├── Sprite2D (显示玩家图片)
-#   └── CollisionShape2D (碰撞检测)
+[gd_scene load_steps=4 format=3 uid="uid://cplayer001"]
+
+[ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_player"]
+size = Vector2(32, 48)
+
+[node name="Player" type="CharacterBody2D"]
+collision_layer = 1
+collision_mask = 2
+script = ExtResource("1_player")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+offset = Vector2(16, 24)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(16, 24)
+shape = SubResource("RectangleShape2D_player")
