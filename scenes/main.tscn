@@ -1,13 +1,9 @@
-[gd_scene load_steps=7 format=3 uid="uid://cmain001"]
+[gd_scene load_steps=2 format=3 uid="uid://cmain001"]
 
 [ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
-ext_resource_2 = ExtResource("1_hud")
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_enemy"]
 size = Vector2(32, 32)
-
-[sub_resource type="CircleShape2D" id="CircleShape2D_enemy_area"]
-radius = 16
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_collect"]
 radius = 12
