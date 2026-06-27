@@ -43,7 +43,7 @@ collision_mask = 1
 shape = SubResource("CircleShape2D_collect")
 
 [node name="Collectible3" type="Area2D" parent="."]
-position = Vector2(1000, 150)
+position = Vector2(500, 600)
 collision_layer = 4
 collision_mask = 1
 
@@ -52,20 +52,20 @@ collision_mask = 1
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Collectible3"]
 shape = SubResource("CircleShape2D_collect")
 
-[node name="Enemy1" type="CharacterBody2D" parent="."]
-position = Vector2(500, 300)
-collision_layer = 2
-collision_mask = 4
+[node name="Enemy1" type="Area2D" parent="."]
+position = Vector2(400, 300)
+collision_layer = 8
+collision_mask = 1
 
 [node name="Sprite2D" type="Sprite2D" parent="Enemy1"]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Enemy1"]
 shape = SubResource("RectangleShape2D_enemy")
 
-[node name="Enemy2" type="CharacterBody2D" parent="."]
-position = Vector2(800, 200)
-collision_layer = 2
-collision_mask = 4
+[node name="Enemy2" type="Area2D" parent="."]
+position = Vector2(800, 500)
+collision_layer = 8
+collision_mask = 1
 
 [node name="Sprite2D" type="Sprite2D" parent="Enemy2"]
 
@@ -74,7 +74,7 @@ shape = SubResource("RectangleShape2D_enemy")
 
 [node name="PowerUp1" type="Area2D" parent="."]
 position = Vector2(700, 500)
-collision_layer = 4
+collision_layer = 16
 collision_mask = 1
 
 [node name="Sprite2D" type="Sprite2D" parent="PowerUp1"]
