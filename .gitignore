@@ -1,11 +1,5 @@
 # Godot 项目文件
 *.godot
-*.tscn
-*.tres
-*.res
-
-# GDScript 脚本
-*.gd
 
 # 导出的项目
 export/
@@ -17,3 +11,5 @@ export/
 # 系统文件
 .DS_Store
 Thumbs.db
+
+# 注意：*.tscn 和 *.gd 需要被 Git 跟踪，所以不忽略

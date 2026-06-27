@@ -1,0 +1,7 @@
+# 主场景文件
+# 游戏的主场景，包含所有元素
+# 节点层级:
+#   MainScene (Node2D)
+#   ├── Player (场景引用)
+#   ├── Collectibles (多个收集品)
+#   └── HUD (抬头显示)

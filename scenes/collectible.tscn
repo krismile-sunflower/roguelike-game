@@ -1,0 +1,6 @@
+# 收集品场景文件
+# 当玩家碰到时增加分数并销毁
+# 节点层级:
+#   Collectible (Area2D)
+#   ├── Sprite2D (显示金币/道具图片)
+#   └── CollisionShape2D (碰撞检测)

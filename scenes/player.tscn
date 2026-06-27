@@ -1,0 +1,6 @@
+# 玩家场景文件
+# 包含角色、碰撞和动画结构
+# 节点层级:
+#   Player (CharacterBody2D)
+#   ├── Sprite2D (显示玩家图片)
+#   └── CollisionShape2D (碰撞检测)
