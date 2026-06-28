@@ -108,12 +108,14 @@ func _on_hint_button_pressed() -> void:
 
 
 func _on_help_button_pressed() -> void:
+	AudioManager.play_sound("button")
 	var scene := get_tree().current_scene
 	if scene != null and scene.has_method("show_instructions"):
 		scene.show_instructions()
 
 
 func _on_reset_button_pressed() -> void:
+	AudioManager.play_sound("button")
 	var scene := get_tree().current_scene
 	if scene != null and scene.has_method("reset_level"):
 		scene.reset_level()

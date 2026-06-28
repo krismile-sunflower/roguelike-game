@@ -242,6 +242,602 @@ const LEVELS := [
 			},
 		],
 	},
+	{
+		"title": "\u8336\u70b9\u6258\u76d8",
+		"goal": "\u628a\u4e0b\u5348\u8336\u7684\u5c0f\u7269\u4ef6\u6536\u5230\u6258\u76d8\u4e0a\uff0c\u8ba9\u684c\u9762\u91cd\u65b0\u7559\u51fa\u7a7a\u6c14\u3002",
+		"background_color": Color(0.96, 0.92, 0.86, 1.0),
+		"desk_color": Color(0.78, 0.66, 0.55, 1.0),
+		"targets": [
+			{
+				"id": "tea_tray",
+				"label": "\u6728\u6258\u76d8",
+				"mode": "category_bin",
+				"accepted_category": "tea",
+				"position": Vector2(640, 345),
+				"size": Vector2(420, 205),
+				"slot_positions": [
+					Vector2(-138, -18),
+					Vector2(-46, 18),
+					Vector2(50, -14),
+					Vector2(138, 16),
+				],
+				"color": Color(0.82, 0.69, 0.52, 0.58),
+			},
+		],
+		"items": [
+			{
+				"id": "teacup",
+				"label": "\u82b1\u8fb9\u8336\u676f",
+				"target_id": "tea_tray",
+				"category": "tea",
+				"home_position": Vector2(220, 594),
+				"size": Vector2(112, 76),
+				"color": Color(0.97, 0.86, 0.75, 1.0),
+			},
+			{
+				"id": "teabag",
+				"label": "\u8336\u5305",
+				"target_id": "tea_tray",
+				"category": "tea",
+				"home_position": Vector2(430, 608),
+				"size": Vector2(104, 66),
+				"color": Color(0.86, 0.74, 0.53, 1.0),
+			},
+			{
+				"id": "cookie",
+				"label": "\u5c0f\u997c\u5e72",
+				"target_id": "tea_tray",
+				"category": "tea",
+				"home_position": Vector2(760, 598),
+				"size": Vector2(108, 72),
+				"color": Color(0.91, 0.70, 0.48, 1.0),
+			},
+			{
+				"id": "napkin",
+				"label": "\u683c\u7eb9\u9910\u5dfe",
+				"target_id": "tea_tray",
+				"category": "tea",
+				"home_position": Vector2(1030, 598),
+				"size": Vector2(122, 76),
+				"color": Color(0.78, 0.86, 0.93, 1.0),
+			},
+		],
+	},
+	{
+		"title": "\u753b\u5177\u5de5\u4f5c\u53f0",
+		"goal": "\u5de6\u4fa7\u6536\u597d\u989c\u8272\u6750\u6599\uff0c\u53f3\u4fa7\u653e\u597d\u4fee\u6574\u5de5\u5177\u3002",
+		"background_color": Color(0.93, 0.94, 0.90, 1.0),
+		"desk_color": Color(0.72, 0.78, 0.70, 1.0),
+		"targets": [
+			{
+				"id": "paint_box",
+				"label": "\u989c\u8272\u76d2",
+				"mode": "category_bin",
+				"accepted_category": "color_supply",
+				"position": Vector2(405, 338),
+				"size": Vector2(270, 178),
+				"slot_positions": [
+					Vector2(-70, -22),
+					Vector2(0, 16),
+					Vector2(72, -12),
+				],
+				"color": Color(0.72, 0.80, 0.88, 0.56),
+			},
+			{
+				"id": "tool_cup",
+				"label": "\u5de5\u5177\u676f",
+				"mode": "category_bin",
+				"accepted_category": "craft_tool",
+				"position": Vector2(890, 338),
+				"size": Vector2(270, 178),
+				"slot_positions": [
+					Vector2(-66, -20),
+					Vector2(4, 18),
+					Vector2(76, -10),
+				],
+				"color": Color(0.88, 0.77, 0.66, 0.56),
+			},
+		],
+		"items": [
+			{
+				"id": "watercolor",
+				"label": "\u6c34\u5f69\u76d2",
+				"target_id": "paint_box",
+				"category": "color_supply",
+				"home_position": Vector2(190, 595),
+				"size": Vector2(126, 76),
+				"color": Color(0.72, 0.83, 0.96, 1.0),
+			},
+			{
+				"id": "crayon",
+				"label": "\u8721\u7b14",
+				"target_id": "paint_box",
+				"category": "color_supply",
+				"home_position": Vector2(390, 608),
+				"size": Vector2(112, 62),
+				"color": Color(0.96, 0.72, 0.61, 1.0),
+			},
+			{
+				"id": "palette",
+				"label": "\u8c03\u8272\u76d8",
+				"target_id": "paint_box",
+				"category": "color_supply",
+				"home_position": Vector2(600, 596),
+				"size": Vector2(114, 76),
+				"color": Color(0.96, 0.88, 0.70, 1.0),
+			},
+			{
+				"id": "tape",
+				"label": "\u80f6\u5e26",
+				"target_id": "tool_cup",
+				"category": "craft_tool",
+				"home_position": Vector2(810, 598),
+				"size": Vector2(108, 70),
+				"color": Color(0.80, 0.88, 0.78, 1.0),
+			},
+			{
+				"id": "ruler",
+				"label": "\u76f4\u5c3a",
+				"target_id": "tool_cup",
+				"category": "craft_tool",
+				"home_position": Vector2(1010, 608),
+				"size": Vector2(128, 58),
+				"color": Color(0.95, 0.84, 0.52, 1.0),
+			},
+			{
+				"id": "clip",
+				"label": "\u957f\u5c3e\u5939",
+				"target_id": "tool_cup",
+				"category": "craft_tool",
+				"home_position": Vector2(1182, 598),
+				"size": Vector2(98, 70),
+				"color": Color(0.78, 0.74, 0.91, 1.0),
+			},
+		],
+	},
+	{
+		"title": "\u90ae\u4ef6\u4e0e\u7968\u6839",
+		"goal": "\u628a\u4e66\u4fe1\u653e\u8fdb\u7eb8\u5939\uff0c\u628a\u65c5\u884c\u5c0f\u7968\u8d34\u5230\u56de\u5fc6\u677f\u4e0a\u3002",
+		"background_color": Color(0.95, 0.92, 0.88, 1.0),
+		"desk_color": Color(0.80, 0.72, 0.63, 1.0),
+		"targets": [
+			{
+				"id": "letter_folder",
+				"label": "\u4e66\u4fe1\u7eb8\u5939",
+				"mode": "category_bin",
+				"accepted_category": "letter",
+				"position": Vector2(390, 338),
+				"size": Vector2(285, 180),
+				"slot_positions": [
+					Vector2(-76, -18),
+					Vector2(0, 18),
+					Vector2(78, -10),
+				],
+				"color": Color(0.88, 0.78, 0.64, 0.56),
+			},
+			{
+				"id": "memory_board",
+				"label": "\u56de\u5fc6\u677f",
+				"mode": "category_bin",
+				"accepted_category": "memory",
+				"position": Vector2(895, 338),
+				"size": Vector2(285, 180),
+				"slot_positions": [
+					Vector2(-78, -16),
+					Vector2(0, 16),
+					Vector2(80, -8),
+				],
+				"color": Color(0.74, 0.82, 0.84, 0.56),
+			},
+		],
+		"items": [
+			{
+				"id": "envelope",
+				"label": "\u4fe1\u5c01",
+				"target_id": "letter_folder",
+				"category": "letter",
+				"home_position": Vector2(190, 596),
+				"size": Vector2(122, 72),
+				"color": Color(0.96, 0.91, 0.80, 1.0),
+			},
+			{
+				"id": "postcard",
+				"label": "\u660e\u4fe1\u7247",
+				"target_id": "letter_folder",
+				"category": "letter",
+				"home_position": Vector2(390, 606),
+				"size": Vector2(118, 68),
+				"color": Color(0.78, 0.88, 0.93, 1.0),
+			},
+			{
+				"id": "stamp",
+				"label": "\u90ae\u7968\u5c0f\u888b",
+				"target_id": "letter_folder",
+				"category": "letter",
+				"home_position": Vector2(590, 596),
+				"size": Vector2(102, 72),
+				"color": Color(0.90, 0.75, 0.80, 1.0),
+			},
+			{
+				"id": "ticket",
+				"label": "\u8f66\u7968",
+				"target_id": "memory_board",
+				"category": "memory",
+				"home_position": Vector2(800, 608),
+				"size": Vector2(120, 58),
+				"color": Color(0.95, 0.84, 0.56, 1.0),
+			},
+			{
+				"id": "photo",
+				"label": "\u5c0f\u7167\u7247",
+				"target_id": "memory_board",
+				"category": "memory",
+				"home_position": Vector2(1000, 596),
+				"size": Vector2(112, 76),
+				"color": Color(0.80, 0.86, 0.94, 1.0),
+			},
+			{
+				"id": "map_piece",
+				"label": "\u5730\u56fe\u7247",
+				"target_id": "memory_board",
+				"category": "memory",
+				"home_position": Vector2(1180, 606),
+				"size": Vector2(104, 66),
+				"color": Color(0.76, 0.86, 0.70, 1.0),
+			},
+		],
+	},
+	{
+		"title": "\u591c\u665a\u5e8a\u5934\u67dc",
+		"goal": "\u6309\u8f6e\u5ed3\u628a\u7761\u524d\u5c0f\u7269\u4ef6\u653e\u56de\u5e8a\u5934\uff0c\u8ba9\u706f\u5149\u6162\u6162\u5b89\u9759\u4e0b\u6765\u3002",
+		"background_color": Color(0.85, 0.87, 0.91, 1.0),
+		"desk_color": Color(0.62, 0.61, 0.69, 1.0),
+		"targets": [
+			{
+				"id": "sleep_lamp_slot",
+				"label": "\u5c0f\u591c\u706f",
+				"mode": "single",
+				"accepted_item_ids": ["sleep_lamp"],
+				"position": Vector2(310, 338),
+				"size": Vector2(138, 120),
+				"color": Color(0.72, 0.70, 0.82, 0.5),
+			},
+			{
+				"id": "glasses_slot",
+				"label": "\u773c\u955c",
+				"mode": "single",
+				"accepted_item_ids": ["glasses"],
+				"position": Vector2(530, 365),
+				"size": Vector2(130, 88),
+				"color": Color(0.70, 0.74, 0.84, 0.5),
+			},
+			{
+				"id": "bookmark_slot",
+				"label": "\u4e66\u7b7e",
+				"mode": "single",
+				"accepted_item_ids": ["bookmark"],
+				"position": Vector2(750, 365),
+				"size": Vector2(106, 150),
+				"color": Color(0.74, 0.73, 0.84, 0.5),
+			},
+			{
+				"id": "clock_slot",
+				"label": "\u5c0f\u95f9\u949f",
+				"mode": "single",
+				"accepted_item_ids": ["clock"],
+				"position": Vector2(980, 338),
+				"size": Vector2(140, 112),
+				"color": Color(0.70, 0.74, 0.84, 0.5),
+			},
+		],
+		"items": [
+			{
+				"id": "clock",
+				"label": "\u5c0f\u95f9\u949f",
+				"target_id": "clock_slot",
+				"home_position": Vector2(200, 596),
+				"size": Vector2(114, 78),
+				"color": Color(0.86, 0.78, 0.92, 1.0),
+			},
+			{
+				"id": "sleep_lamp",
+				"label": "\u5c0f\u591c\u706f",
+				"target_id": "sleep_lamp_slot",
+				"home_position": Vector2(480, 596),
+				"size": Vector2(118, 82),
+				"color": Color(0.97, 0.88, 0.60, 1.0),
+			},
+			{
+				"id": "bookmark",
+				"label": "\u5e03\u4e66\u7b7e",
+				"target_id": "bookmark_slot",
+				"home_position": Vector2(760, 606),
+				"size": Vector2(98, 88),
+				"color": Color(0.82, 0.68, 0.84, 1.0),
+			},
+			{
+				"id": "glasses",
+				"label": "\u5706\u773c\u955c",
+				"target_id": "glasses_slot",
+				"home_position": Vector2(1040, 606),
+				"size": Vector2(112, 66),
+				"color": Color(0.78, 0.88, 0.94, 1.0),
+			},
+		],
+	},
+	{
+		"title": "\u53a8\u623f\u62bd\u5c49",
+		"goal": "\u628a\u9910\u5177\u548c\u8c03\u5473\u5c0f\u7269\u5206\u5f00\uff0c\u8ba9\u62bd\u5c49\u91cc\u6bcf\u4e00\u683c\u90fd\u6e05\u6e05\u695a\u695a\u3002",
+		"background_color": Color(0.95, 0.94, 0.89, 1.0),
+		"desk_color": Color(0.76, 0.69, 0.58, 1.0),
+		"targets": [
+			{
+				"id": "cutlery_drawer",
+				"label": "\u9910\u5177\u683c",
+				"mode": "category_bin",
+				"accepted_category": "cutlery",
+				"position": Vector2(390, 342),
+				"size": Vector2(285, 190),
+				"slot_positions": [
+					Vector2(-76, -18),
+					Vector2(0, 18),
+					Vector2(78, -10),
+				],
+				"color": Color(0.82, 0.74, 0.62, 0.56),
+			},
+			{
+				"id": "seasoning_drawer",
+				"label": "\u8c03\u5473\u683c",
+				"mode": "category_bin",
+				"accepted_category": "seasoning",
+				"position": Vector2(895, 342),
+				"size": Vector2(285, 190),
+				"slot_positions": [
+					Vector2(-78, -16),
+					Vector2(0, 16),
+					Vector2(80, -8),
+				],
+				"color": Color(0.82, 0.80, 0.66, 0.56),
+			},
+		],
+		"items": [
+			{
+				"id": "fork",
+				"label": "\u53c9\u5b50",
+				"target_id": "cutlery_drawer",
+				"category": "cutlery",
+				"home_position": Vector2(184, 606),
+				"size": Vector2(112, 62),
+				"color": Color(0.78, 0.82, 0.86, 1.0),
+			},
+			{
+				"id": "knife",
+				"label": "\u9910\u5200",
+				"target_id": "cutlery_drawer",
+				"category": "cutlery",
+				"home_position": Vector2(380, 606),
+				"size": Vector2(118, 62),
+				"color": Color(0.76, 0.80, 0.84, 1.0),
+			},
+			{
+				"id": "chopsticks",
+				"label": "\u7b77\u5b50",
+				"target_id": "cutlery_drawer",
+				"category": "cutlery",
+				"home_position": Vector2(585, 606),
+				"size": Vector2(126, 58),
+				"color": Color(0.80, 0.62, 0.44, 1.0),
+			},
+			{
+				"id": "salt",
+				"label": "\u76d0\u7f50",
+				"target_id": "seasoning_drawer",
+				"category": "seasoning",
+				"home_position": Vector2(800, 596),
+				"size": Vector2(104, 74),
+				"color": Color(0.94, 0.94, 0.89, 1.0),
+			},
+			{
+				"id": "pepper",
+				"label": "\u80e1\u6912\u74f6",
+				"target_id": "seasoning_drawer",
+				"category": "seasoning",
+				"home_position": Vector2(1000, 596),
+				"size": Vector2(104, 74),
+				"color": Color(0.68, 0.63, 0.58, 1.0),
+			},
+			{
+				"id": "sauce",
+				"label": "\u9171\u6c41\u74f6",
+				"target_id": "seasoning_drawer",
+				"category": "seasoning",
+				"home_position": Vector2(1180, 596),
+				"size": Vector2(102, 78),
+				"color": Color(0.92, 0.68, 0.50, 1.0),
+			},
+		],
+	},
+	{
+		"title": "\u65c5\u884c\u6536\u7eb3",
+		"goal": "\u8863\u7269\u8fdb\u884c\u674e\u7bb1\uff0c\u968f\u8eab\u7269\u8fdb\u5c0f\u5305\uff0c\u6d17\u6f31\u7269\u8fdb\u9632\u6c34\u888b\u3002",
+		"background_color": Color(0.91, 0.93, 0.92, 1.0),
+		"desk_color": Color(0.66, 0.73, 0.71, 1.0),
+		"targets": [
+			{
+				"id": "suitcase",
+				"label": "\u884c\u674e\u7bb1",
+				"mode": "category_bin",
+				"accepted_category": "clothes",
+				"position": Vector2(300, 344),
+				"size": Vector2(240, 180),
+				"slot_positions": [
+					Vector2(-58, -16),
+					Vector2(18, 16),
+				],
+				"color": Color(0.70, 0.78, 0.76, 0.56),
+			},
+			{
+				"id": "day_bag",
+				"label": "\u968f\u8eab\u5305",
+				"mode": "category_bin",
+				"accepted_category": "daily_carry",
+				"position": Vector2(640, 344),
+				"size": Vector2(240, 180),
+				"slot_positions": [
+					Vector2(-58, -16),
+					Vector2(18, 16),
+				],
+				"color": Color(0.78, 0.74, 0.86, 0.56),
+			},
+			{
+				"id": "wash_pouch",
+				"label": "\u6d17\u6f31\u888b",
+				"mode": "category_bin",
+				"accepted_category": "toiletry",
+				"position": Vector2(980, 344),
+				"size": Vector2(240, 180),
+				"slot_positions": [
+					Vector2(-58, -16),
+					Vector2(18, 16),
+				],
+				"color": Color(0.78, 0.84, 0.88, 0.56),
+			},
+		],
+		"items": [
+			{
+				"id": "shirt",
+				"label": "\u886c\u886b",
+				"target_id": "suitcase",
+				"category": "clothes",
+				"home_position": Vector2(160, 596),
+				"size": Vector2(106, 76),
+				"color": Color(0.74, 0.84, 0.94, 1.0),
+			},
+			{
+				"id": "socks",
+				"label": "\u889c\u5b50",
+				"target_id": "suitcase",
+				"category": "clothes",
+				"home_position": Vector2(330, 606),
+				"size": Vector2(104, 64),
+				"color": Color(0.92, 0.78, 0.78, 1.0),
+			},
+			{
+				"id": "passport",
+				"label": "\u62a4\u7167",
+				"target_id": "day_bag",
+				"category": "daily_carry",
+				"home_position": Vector2(510, 596),
+				"size": Vector2(104, 74),
+				"color": Color(0.62, 0.72, 0.88, 1.0),
+			},
+			{
+				"id": "headphones",
+				"label": "\u8033\u673a",
+				"target_id": "day_bag",
+				"category": "daily_carry",
+				"home_position": Vector2(690, 606),
+				"size": Vector2(108, 66),
+				"color": Color(0.72, 0.70, 0.78, 1.0),
+			},
+			{
+				"id": "toothbrush",
+				"label": "\u7259\u5237",
+				"target_id": "wash_pouch",
+				"category": "toiletry",
+				"home_position": Vector2(870, 606),
+				"size": Vector2(112, 60),
+				"color": Color(0.73, 0.88, 0.88, 1.0),
+			},
+			{
+				"id": "soap",
+				"label": "\u9999\u7682",
+				"target_id": "wash_pouch",
+				"category": "toiletry",
+				"home_position": Vector2(1060, 596),
+				"size": Vector2(104, 70),
+				"color": Color(0.96, 0.84, 0.72, 1.0),
+			},
+		],
+	},
+	{
+		"title": "\u56de\u5fc6\u5c55\u793a\u67b6",
+		"goal": "\u628a\u6700\u540e\u7684\u5c0f\u56de\u5fc6\u653e\u5230\u5bf9\u5e94\u683c\u5b50\uff0c\u5b8c\u6210\u8fd9\u4e00\u9875\u6574\u7406\u65f6\u5149\u3002",
+		"background_color": Color(0.95, 0.91, 0.88, 1.0),
+		"desk_color": Color(0.74, 0.65, 0.57, 1.0),
+		"targets": [
+			{
+				"id": "keepsake_photo_slot",
+				"label": "\u7167\u7247\u683c",
+				"mode": "single",
+				"accepted_item_ids": ["keepsake_photo"],
+				"position": Vector2(280, 326),
+				"size": Vector2(138, 118),
+				"color": Color(0.77, 0.76, 0.70, 0.5),
+			},
+			{
+				"id": "shell_slot",
+				"label": "\u8d1d\u58f3\u683c",
+				"mode": "single",
+				"accepted_item_ids": ["shell"],
+				"position": Vector2(500, 370),
+				"size": Vector2(128, 96),
+				"color": Color(0.78, 0.80, 0.73, 0.5),
+			},
+			{
+				"id": "key_slot",
+				"label": "\u94a5\u5319\u683c",
+				"mode": "single",
+				"accepted_item_ids": ["key"],
+				"position": Vector2(720, 370),
+				"size": Vector2(128, 96),
+				"color": Color(0.78, 0.76, 0.70, 0.5),
+			},
+			{
+				"id": "tiny_plant_slot",
+				"label": "\u5c0f\u690d\u7269",
+				"mode": "single",
+				"accepted_item_ids": ["tiny_plant"],
+				"position": Vector2(940, 326),
+				"size": Vector2(136, 120),
+				"color": Color(0.76, 0.82, 0.74, 0.5),
+			},
+		],
+		"items": [
+			{
+				"id": "shell",
+				"label": "\u767d\u8d1d\u58f3",
+				"target_id": "shell_slot",
+				"home_position": Vector2(190, 596),
+				"size": Vector2(104, 72),
+				"color": Color(0.95, 0.86, 0.76, 1.0),
+			},
+			{
+				"id": "key",
+				"label": "\u65e7\u94a5\u5319",
+				"target_id": "key_slot",
+				"home_position": Vector2(470, 606),
+				"size": Vector2(112, 60),
+				"color": Color(0.90, 0.78, 0.50, 1.0),
+			},
+			{
+				"id": "keepsake_photo",
+				"label": "\u62cd\u7acb\u5f97",
+				"target_id": "keepsake_photo_slot",
+				"home_position": Vector2(750, 596),
+				"size": Vector2(114, 82),
+				"color": Color(0.86, 0.92, 0.96, 1.0),
+			},
+			{
+				"id": "tiny_plant",
+				"label": "\u5c0f\u690d\u7269",
+				"target_id": "tiny_plant_slot",
+				"home_position": Vector2(1030, 596),
+				"size": Vector2(112, 78),
+				"color": Color(0.76, 0.88, 0.68, 1.0),
+			},
+		],
+	},
 ]
 
 @onready var background: ColorRect = $Background
@@ -354,6 +950,7 @@ func show_hint() -> void:
 			if target != null:
 				target.pulse_hint()
 			GameData.register_hint()
+			AudioManager.play_sound("hint")
 			_save_progress(true)
 			return
 
@@ -648,6 +1245,19 @@ func _connect_buttons() -> void:
 	pause_reset_button.pressed.connect(_on_pause_reset_pressed)
 	pause_home_button.pressed.connect(show_menu)
 
+	for button in [
+		next_button,
+		start_button,
+		continue_button,
+		instructions_button,
+		quit_button,
+		instructions_back_button,
+		pause_resume_button,
+		pause_reset_button,
+		pause_home_button,
+	]:
+		button.pressed.connect(_play_button_feedback)
+
 
 func _on_pause_reset_pressed() -> void:
 	load_level(current_loaded_level_index)
@@ -655,6 +1265,10 @@ func _on_pause_reset_pressed() -> void:
 
 func _on_quit_button_pressed() -> void:
 	get_tree().quit()
+
+
+func _play_button_feedback() -> void:
+	AudioManager.play_sound("button")
 
 
 func _set_static_copy() -> void:
@@ -804,6 +1418,20 @@ func _build_level_decor(level_index: int, level_data: Dictionary) -> void:
 			_build_library_decor()
 		2:
 			_build_sorting_decor()
+		3:
+			_build_tea_decor()
+		4:
+			_build_art_desk_decor()
+		5:
+			_build_mail_decor()
+		6:
+			_build_nightstand_decor()
+		7:
+			_build_kitchen_drawer_decor()
+		8:
+			_build_travel_decor()
+		9:
+			_build_keepsake_decor()
 		_:
 			_build_generic_decor()
 
@@ -835,6 +1463,62 @@ func _build_sorting_decor() -> void:
 	_add_cloth(decor_layer, Vector2(740, 474), Vector2(380, 128), Color(0.76, 0.86, 0.89, 0.28))
 	_add_plant(decor_layer, Vector2(228, 144), Color(0.51, 0.69, 0.54, 1.0), Color(0.92, 0.84, 0.72, 1.0))
 	_add_jar(decor_layer, Vector2(986, 146), Color(0.96, 0.94, 0.87, 1.0), Color(0.84, 0.72, 0.58, 1.0))
+
+
+func _build_tea_decor() -> void:
+	_add_rect(decor_layer, Vector2(200, 106), Vector2(870, 116), Color(1.0, 0.96, 0.88, 0.40))
+	_add_cloth(decor_layer, Vector2(276, 474), Vector2(728, 116), Color(0.92, 0.82, 0.74, 0.32))
+	_add_rect(decor_layer, Vector2(466, 270), Vector2(350, 26), Color(0.70, 0.52, 0.38, 0.36))
+	_add_jar(decor_layer, Vector2(1018, 132), Color(0.96, 0.90, 0.78, 1.0), Color(0.78, 0.58, 0.42, 1.0))
+	_add_plant(decor_layer, Vector2(236, 142), Color(0.55, 0.70, 0.45, 1.0), Color(0.86, 0.70, 0.58, 1.0))
+
+
+func _build_art_desk_decor() -> void:
+	_add_rect(decor_layer, Vector2(174, 96), Vector2(930, 150), Color(1.0, 0.98, 0.92, 0.38))
+	_add_rect(decor_layer, Vector2(212, 124), Vector2(130, 92), Color(0.76, 0.84, 0.92, 0.34))
+	_add_rect(decor_layer, Vector2(360, 118), Vector2(98, 108), Color(0.94, 0.76, 0.70, 0.32))
+	_add_rect(decor_layer, Vector2(836, 104), Vector2(260, 132), Color(0.78, 0.86, 0.72, 0.28))
+	_add_cloth(decor_layer, Vector2(190, 482), Vector2(900, 108), Color(0.82, 0.82, 0.74, 0.28))
+
+
+func _build_mail_decor() -> void:
+	_add_rect(decor_layer, Vector2(190, 102), Vector2(890, 134), Color(0.98, 0.94, 0.86, 0.42))
+	_add_rect(decor_layer, Vector2(234, 124), Vector2(122, 82), Color(0.92, 0.84, 0.70, 0.50))
+	_add_rect(decor_layer, Vector2(374, 116), Vector2(148, 94), Color(0.78, 0.88, 0.92, 0.36))
+	_add_rect(decor_layer, Vector2(868, 118), Vector2(164, 96), Color(0.84, 0.80, 0.72, 0.38))
+	_add_cloth(decor_layer, Vector2(224, 484), Vector2(838, 112), Color(0.88, 0.78, 0.66, 0.24))
+
+
+func _build_nightstand_decor() -> void:
+	_add_rect(decor_layer, Vector2(180, 94), Vector2(920, 160), Color(0.78, 0.80, 0.88, 0.40))
+	_add_rect(decor_layer, Vector2(246, 118), Vector2(152, 84), Color(0.95, 0.88, 0.62, 0.28))
+	_add_rect(decor_layer, Vector2(430, 112), Vector2(312, 110), Color(0.68, 0.70, 0.82, 0.22))
+	_add_rect(decor_layer, Vector2(816, 118), Vector2(204, 94), Color(0.66, 0.68, 0.78, 0.28))
+	_add_cloth(decor_layer, Vector2(238, 482), Vector2(790, 118), Color(0.66, 0.64, 0.74, 0.28))
+
+
+func _build_kitchen_drawer_decor() -> void:
+	_add_rect(decor_layer, Vector2(192, 96), Vector2(888, 152), Color(0.98, 0.95, 0.86, 0.40))
+	_add_rect(decor_layer, Vector2(258, 118), Vector2(188, 98), Color(0.82, 0.72, 0.58, 0.32))
+	_add_rect(decor_layer, Vector2(486, 118), Vector2(130, 98), Color(0.92, 0.86, 0.72, 0.26))
+	_add_rect(decor_layer, Vector2(808, 118), Vector2(220, 98), Color(0.84, 0.80, 0.64, 0.30))
+	_add_cloth(decor_layer, Vector2(190, 482), Vector2(900, 112), Color(0.82, 0.74, 0.62, 0.26))
+
+
+func _build_travel_decor() -> void:
+	_add_rect(decor_layer, Vector2(190, 96), Vector2(890, 154), Color(0.94, 0.97, 0.96, 0.38))
+	_add_rect(decor_layer, Vector2(244, 120), Vector2(180, 92), Color(0.70, 0.78, 0.76, 0.30))
+	_add_rect(decor_layer, Vector2(548, 118), Vector2(180, 96), Color(0.78, 0.74, 0.86, 0.30))
+	_add_rect(decor_layer, Vector2(858, 118), Vector2(178, 96), Color(0.72, 0.84, 0.88, 0.30))
+	_add_cloth(decor_layer, Vector2(208, 484), Vector2(860, 110), Color(0.72, 0.80, 0.78, 0.28))
+
+
+func _build_keepsake_decor() -> void:
+	_add_rect(decor_layer, Vector2(188, 96), Vector2(890, 158), Color(1.0, 0.96, 0.88, 0.40))
+	_add_rect(decor_layer, Vector2(244, 116), Vector2(806, 118), Color(0.78, 0.67, 0.54, 0.24))
+	_add_rect(decor_layer, Vector2(258, 128), Vector2(118, 78), Color(0.96, 0.93, 0.84, 0.36))
+	_add_rect(decor_layer, Vector2(864, 126), Vector2(132, 82), Color(0.76, 0.86, 0.70, 0.30))
+	_add_cloth(decor_layer, Vector2(220, 484), Vector2(834, 110), Color(0.88, 0.78, 0.68, 0.26))
 
 
 func _build_generic_decor() -> void:

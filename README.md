@@ -7,7 +7,7 @@
 ## 当前可玩内容
 
 - 中文主菜单：`开始整理 / 继续整理 / 玩法说明 / 退出游戏`
-- 3 个单屏整理关卡：归位、排序、分类
+- 10 个单屏整理关卡：归位、排序、分类、混合收纳、观察归位
 - 鼠标拖放交互：拾取、拖动、放下、吸附、回位
 - 首关分步教学与游戏内帮助入口
 - 暂停、提示、重置本关
@@ -36,7 +36,7 @@
 
 - 素材、美术和统一视觉包装
 - 更丰富的完成反馈和动画细节
-- 更多关卡与更稳的关卡数据组织方式
+- 更稳的关卡数据组织方式
 - 更完整的音频、粒子和叙事表达
 
 ## 运行方式
@@ -60,6 +60,11 @@ roguelike-game/
 │  ├─ main.tscn
 │  ├─ draggable_item.tscn
 │  └─ drop_target.tscn
+├─ assets/
+│  ├─ art/
+│  ├─ audio/
+│  ├─ ui/
+│  └─ licenses/
 ├─ scripts/
 │  ├─ main.gd
 │  ├─ hud.gd
@@ -73,6 +78,7 @@ roguelike-game/
 └─ docs/
    ├─ architecture.md
    ├─ development-guide.md
+   ├─ game-goal.md
    ├─ gdscript-guide.md
    └─ next-steps.md
 ```
@@ -95,6 +101,7 @@ roguelike-game/
 ## 文档索引
 
 - [架构说明](docs/architecture.md)
+- [项目目标](docs/game-goal.md)
 - [开发指南](docs/development-guide.md)
 - [GDScript 约定](docs/gdscript-guide.md)
 - [后续计划](docs/next-steps.md)
