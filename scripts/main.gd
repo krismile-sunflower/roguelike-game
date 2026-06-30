@@ -1,1580 +1,1234 @@
 extends Node2D
 
-signal placement_progress_changed(placed_count: int, total_count: int)
-signal level_loaded(level_data: Dictionary)
+enum Tile {
+	WALL,
+	FLOOR,
+}
 
-const ITEM_SCENE := preload("res://scenes/draggable_item.tscn")
-const TARGET_SCENE := preload("res://scenes/drop_target.tscn")
+enum RunOutcome {
+	NONE,
+	LEVEL_COMPLETE,
+	VICTORY,
+	GAME_OVER,
+}
 
-const TEXT_MAIN_TITLE := "\u6574\u7406\u65f6\u5149"
-const TEXT_MAIN_SUBTITLE := "\u628a\u6563\u843d\u7684\u5c0f\u7269\u4ef6\uff0c\u6162\u6162\u653e\u56de\u5b83\u4eec\u8212\u670d\u7684\u4f4d\u7f6e\u3002"
-const TEXT_START := "\u5f00\u59cb\u6574\u7406"
-const TEXT_CONTINUE := "\u7ee7\u7eed\u6574\u7406"
-const TEXT_INSTRUCTIONS := "\u73a9\u6cd5\u8bf4\u660e"
-const TEXT_QUIT := "\u9000\u51fa\u6e38\u620f"
-const TEXT_BACK := "\u8fd4\u56de"
-const TEXT_PAUSE_TITLE := "\u5148\u6b47\u4e00\u4f1a\u513f"
-const TEXT_RESET_LEVEL := "\u91cd\u7f6e\u672c\u5173"
-const TEXT_RETURN_HOME := "\u56de\u5230\u4e3b\u9875"
-const TEXT_NEXT_LEVEL := "\u4e0b\u4e00\u5173"
-const TEXT_COMPLETE_TITLE := "\u6574\u7406\u597d\u4e86"
-const TEXT_COMPLETE_SPARKLE := "\u8fd9\u4e00\u5c0f\u7247\u65e5\u5e38\uff0c\u5df2\u7ecf\u56de\u5230\u8212\u670d\u7684\u6a21\u6837\u3002"
-const TEXT_LEVEL_DONE := "\u5173\u5361\u5b8c\u6210\u3002\u7ee7\u7eed\u628a\u8fd9\u4e00\u4efd\u8212\u670d\uff0c\u5e26\u53bb\u4e0b\u4e00\u9875\u5427\u3002"
-const TEXT_LAST_LEVEL_DONE := "\u8fd9\u4e00\u9875\u65e5\u5e38\u5df2\u7ecf\u6574\u7406\u59a5\u5f53\u3002"
-const TEXT_TUTORIAL_START := "\u6b22\u8fce\u6765\u5230\u6574\u7406\u65f6\u5149\u3002\u5148\u8bd5\u7740\u62ff\u8d77\u4e00\u4e2a\u7269\u54c1\u5427\u3002"
-const TEXT_TUTORIAL_DRAG := "\u5f88\u597d\uff0c\u62d6\u5230\u5b83\u5408\u9002\u7684\u4f4d\u7f6e\u540e\u677e\u5f00\u9f20\u6807\u3002"
-const TEXT_TUTORIAL_SNAP := "\u653e\u5bf9\u540e\u4f1a\u8f7b\u8f7b\u5438\u9644\u5230\u4f4d\uff0c\u653e\u9519\u5219\u4f1a\u56de\u5230\u539f\u5904\u3002"
-const TEXT_TUTORIAL_FINISH := "\u6162\u6162\u6574\u7406\u5b8c\u8fd9\u5173\u7684\u5168\u90e8\u7269\u54c1\uff0c\u5c31\u80fd\u7ee7\u7eed\u4e0b\u4e00\u6bb5\u6e29\u67d4\u65e5\u5e38\u3002"
-const TEXT_INSTRUCTION_BODY := "1. \u6309\u4f4f\u9f20\u6807\u5de6\u952e\u62ff\u8d77\u7269\u54c1\u3002\n2. \u62d6\u5230\u5408\u9002\u7684\u4f4d\u7f6e\u540e\u677e\u5f00\u9f20\u6807\u3002\n3. \u653e\u5bf9\u4f1a\u81ea\u52a8\u5438\u9644\uff0c\u653e\u9519\u4f1a\u56de\u5230\u539f\u4f4d\u3002\n4. \u6574\u7406\u5b8c\u672c\u5173\u5168\u90e8\u7269\u54c1\uff0c\u5c31\u80fd\u8fdb\u5165\u4e0b\u4e00\u5173\u3002\n5. \u6309 Esc \u53ef\u4ee5\u6682\u505c\u6216\u7ee7\u7eed\u3002\n6. \u6e38\u620f\u5185\u53ef\u4ee5\u4f7f\u7528\u63d0\u793a\u3001\u5e2e\u52a9\u548c\u91cd\u7f6e\u672c\u5173\u3002"
+const WINDOW_SIZE := Vector2(1280, 720)
+const TILE_SIZE := 32
+const GRID_WIDTH := 30
+const GRID_HEIGHT := 18
+const MAP_ORIGIN := Vector2(28, 92)
+const MAP_SIZE := Vector2(GRID_WIDTH * TILE_SIZE, GRID_HEIGHT * TILE_SIZE)
+const PANEL_X := 1016.0
+const MAX_LEVELS := 5
 
-const LEVELS := [
+const DIRECTIONS := [
+	Vector2i(1, 0),
+	Vector2i(-1, 0),
+	Vector2i(0, 1),
+	Vector2i(0, -1),
+]
+
+const TEXTURE_PATHS := {
+	"floor": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0048.png",
+	"floor_alt": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0049.png",
+	"floor_mark": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0042.png",
+	"wall": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0014.png",
+	"wall_dark": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0040.png",
+	"door": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0045.png",
+	"player": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0085.png",
+	"slime": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0120.png",
+	"bat": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0122.png",
+	"cultist": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0112.png",
+	"ghost": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0096.png",
+	"brute": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0110.png",
+	"boss": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0123.png",
+	"potion": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0114.png",
+	"coin": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0113.png",
+	"sword": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0103.png",
+	"shield": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0102.png",
+	"chest": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0079.png",
+	"rubble": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0053.png",
+	"torch": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0029.png",
+}
+
+const ENEMY_TYPES := {
+	"slime": {
+		"name": "黏液",
+		"hp": 3,
+		"attack": 1,
+		"score": 18,
+		"texture": "slime",
+		"awareness": 5,
+	},
+	"bat": {
+		"name": "蝙蝠",
+		"hp": 2,
+		"attack": 1,
+		"score": 20,
+		"texture": "bat",
+		"awareness": 7,
+	},
+	"cultist": {
+		"name": "烛影侍从",
+		"hp": 4,
+		"attack": 2,
+		"score": 35,
+		"texture": "cultist",
+		"awareness": 6,
+	},
+	"ghost": {
+		"name": "游魂",
+		"hp": 5,
+		"attack": 2,
+		"score": 45,
+		"texture": "ghost",
+		"awareness": 8,
+	},
+	"brute": {
+		"name": "赤甲守卫",
+		"hp": 7,
+		"attack": 3,
+		"score": 70,
+		"texture": "brute",
+		"awareness": 6,
+	},
+	"boss": {
+		"name": "深井看守",
+		"hp": 13,
+		"attack": 3,
+		"score": 180,
+		"texture": "boss",
+		"awareness": 10,
+	},
+}
+
+const LEVEL_DEFS := [
 	{
-		"title": "\u6668\u95f4\u4e66\u67b6",
-		"goal": "\u628a\u8fd9\u4e9b\u966a\u4f34\u6e05\u6668\u7684\u5c0f\u7269\u4ef6\uff0c\u8f7b\u8f7b\u653e\u56de\u5b83\u4eec\u719f\u6089\u7684\u4f4d\u7f6e\u3002",
-		"background_color": Color(0.97, 0.94, 0.89, 1.0),
-		"desk_color": Color(0.84, 0.73, 0.62, 1.0),
-		"targets": [
-			{
-				"id": "lamp_slot",
-				"label": "\u53f0\u706f",
-				"mode": "single",
-				"accepted_item_ids": ["lamp"],
-				"position": Vector2(295, 310),
-				"size": Vector2(140, 120),
-				"color": Color(0.79, 0.77, 0.70, 0.5),
-			},
-			{
-				"id": "book_slot",
-				"label": "\u7b14\u8bb0\u672c",
-				"mode": "single",
-				"accepted_item_ids": ["book"],
-				"position": Vector2(640, 320),
-				"size": Vector2(150, 90),
-				"color": Color(0.78, 0.74, 0.67, 0.5),
-			},
-			{
-				"id": "camera_slot",
-				"label": "\u76f8\u673a",
-				"mode": "single",
-				"accepted_item_ids": ["camera"],
-				"position": Vector2(960, 315),
-				"size": Vector2(150, 100),
-				"color": Color(0.78, 0.74, 0.67, 0.5),
-			},
+		"title": "第一层：旧井门厅",
+		"goal": "摸清地形，清掉守在门厅里的弱小怪物。",
+		"room_count": 7,
+		"enemy_groups": [
+			{"type": "slime", "count": 3},
+			{"type": "bat", "count": 1},
 		],
-		"items": [
-			{
-				"id": "lamp",
-				"label": "\u5c0f\u53f0\u706f",
-				"target_id": "lamp_slot",
-				"home_position": Vector2(240, 575),
-				"size": Vector2(135, 86),
-				"color": Color(0.98, 0.87, 0.57, 1.0),
-			},
-			{
-				"id": "book",
-				"label": "\u65c5\u884c\u7b14\u8bb0",
-				"target_id": "book_slot",
-				"home_position": Vector2(600, 600),
-				"size": Vector2(148, 76),
-				"color": Color(0.75, 0.86, 0.96, 1.0),
-			},
-			{
-				"id": "camera",
-				"label": "\u80f6\u7247\u76f8\u673a",
-				"target_id": "camera_slot",
-				"home_position": Vector2(980, 585),
-				"size": Vector2(142, 82),
-				"color": Color(0.96, 0.80, 0.78, 1.0),
-			},
-		],
+		"potions": 2,
+		"coins": 4,
+		"gear": ["sword"],
 	},
 	{
-		"title": "\u4e66\u810a\u6392\u6392\u7ad9",
-		"goal": "\u6309\u7167\u4ece\u77ee\u5230\u9ad8\u7684\u987a\u5e8f\uff0c\u628a\u4e09\u672c\u4e66\u6162\u6162\u6392\u597d\u3002",
-		"background_color": Color(0.93, 0.93, 0.9, 1.0),
-		"desk_color": Color(0.71, 0.76, 0.73, 1.0),
-		"targets": [
-			{
-				"id": "book_small",
-				"label": "\u7b2c\u4e00\u683c",
-				"mode": "single",
-				"accepted_item_ids": ["book_short"],
-				"position": Vector2(385, 360),
-				"size": Vector2(120, 150),
-				"color": Color(0.72, 0.69, 0.80, 0.5),
-			},
-			{
-				"id": "book_medium",
-				"label": "\u7b2c\u4e8c\u683c",
-				"mode": "single",
-				"accepted_item_ids": ["book_mid"],
-				"position": Vector2(640, 360),
-				"size": Vector2(120, 170),
-				"color": Color(0.72, 0.69, 0.80, 0.5),
-			},
-			{
-				"id": "book_tall",
-				"label": "\u7b2c\u4e09\u683c",
-				"mode": "single",
-				"accepted_item_ids": ["book_tall"],
-				"position": Vector2(895, 360),
-				"size": Vector2(120, 200),
-				"color": Color(0.72, 0.69, 0.80, 0.5),
-			},
+		"title": "第二层：潮湿回廊",
+		"goal": "回廊更窄，敌人会更快靠近。",
+		"room_count": 8,
+		"enemy_groups": [
+			{"type": "slime", "count": 3},
+			{"type": "bat", "count": 3},
+			{"type": "cultist", "count": 1},
 		],
-		"items": [
-			{
-				"id": "book_mid",
-				"label": "\u82d4\u8272\u624b\u8d26",
-				"target_id": "book_medium",
-				"home_position": Vector2(280, 590),
-				"size": Vector2(120, 130),
-				"color": Color(0.72, 0.84, 0.68, 1.0),
-			},
-			{
-				"id": "book_tall",
-				"label": "\u7d20\u63cf\u96c6",
-				"target_id": "book_tall",
-				"home_position": Vector2(645, 600),
-				"size": Vector2(120, 160),
-				"color": Color(0.96, 0.78, 0.62, 1.0),
-			},
-			{
-				"id": "book_short",
-				"label": "\u53e3\u888b\u8bd7\u96c6",
-				"target_id": "book_small",
-				"home_position": Vector2(1000, 592),
-				"size": Vector2(120, 95),
-				"color": Color(0.65, 0.78, 0.95, 1.0),
-			},
-		],
+		"potions": 2,
+		"coins": 5,
+		"gear": [],
 	},
 	{
-		"title": "\u6e29\u67d4\u5206\u7c7b",
-		"goal": "\u628a\u53a8\u623f\u5c0f\u7269\u653e\u8fdb\u6258\u76d8\uff0c\u628a\u753b\u753b\u5de5\u5177\u6536\u8fdb\u7bee\u5b50\u91cc\u3002",
-		"background_color": Color(0.94, 0.95, 0.91, 1.0),
-		"desk_color": Color(0.76, 0.82, 0.73, 1.0),
-		"targets": [
-			{
-				"id": "kitchen_bin",
-				"label": "\u53a8\u623f\u6258\u76d8",
-				"mode": "category_bin",
-				"accepted_category": "kitchen",
-				"position": Vector2(385, 340),
-				"size": Vector2(260, 170),
-				"slot_positions": [
-					Vector2(-68, -22),
-					Vector2(0, 18),
-					Vector2(72, -10),
-				],
-				"color": Color(0.84, 0.78, 0.66, 0.55),
-			},
-			{
-				"id": "art_bin",
-				"label": "\u753b\u6750\u7bee",
-				"mode": "category_bin",
-				"accepted_category": "art",
-				"position": Vector2(895, 340),
-				"size": Vector2(260, 170),
-				"slot_positions": [
-					Vector2(-70, -18),
-					Vector2(2, 16),
-					Vector2(74, -8),
-				],
-				"color": Color(0.72, 0.83, 0.88, 0.55),
-			},
+		"title": "第三层：碎骨仓库",
+		"goal": "优先处理远处游荡的敌人，别被夹在墙角。",
+		"room_count": 9,
+		"enemy_groups": [
+			{"type": "bat", "count": 3},
+			{"type": "cultist", "count": 3},
+			{"type": "ghost", "count": 1},
 		],
-		"items": [
-			{
-				"id": "mug",
-				"label": "\u8336\u676f",
-				"target_id": "kitchen_bin",
-				"category": "kitchen",
-				"home_position": Vector2(215, 595),
-				"size": Vector2(112, 76),
-				"color": Color(0.98, 0.88, 0.70, 1.0),
-			},
-			{
-				"id": "spoon",
-				"label": "\u6728\u52fa",
-				"target_id": "kitchen_bin",
-				"category": "kitchen",
-				"home_position": Vector2(450, 608),
-				"size": Vector2(118, 60),
-				"color": Color(0.86, 0.72, 0.56, 1.0),
-			},
-			{
-				"id": "tea_tin",
-				"label": "\u8336\u53f6\u7f50",
-				"target_id": "kitchen_bin",
-				"category": "kitchen",
-				"home_position": Vector2(655, 600),
-				"size": Vector2(112, 82),
-				"color": Color(0.79, 0.90, 0.70, 1.0),
-			},
-			{
-				"id": "brush",
-				"label": "\u753b\u7b14",
-				"target_id": "art_bin",
-				"category": "art",
-				"home_position": Vector2(848, 600),
-				"size": Vector2(110, 62),
-				"color": Color(0.99, 0.80, 0.71, 1.0),
-			},
-			{
-				"id": "paint",
-				"label": "\u989c\u6599\u7ba1",
-				"target_id": "art_bin",
-				"category": "art",
-				"home_position": Vector2(1048, 595),
-				"size": Vector2(118, 78),
-				"color": Color(0.72, 0.77, 0.97, 1.0),
-			},
-			{
-				"id": "scissors",
-				"label": "\u526a\u5200",
-				"target_id": "art_bin",
-				"category": "art",
-				"home_position": Vector2(1180, 610),
-				"size": Vector2(100, 74),
-				"color": Color(0.95, 0.67, 0.67, 1.0),
-			},
-		],
+		"potions": 3,
+		"coins": 6,
+		"gear": ["shield"],
 	},
 	{
-		"title": "\u8336\u70b9\u6258\u76d8",
-		"goal": "\u628a\u4e0b\u5348\u8336\u7684\u5c0f\u7269\u4ef6\u6536\u5230\u6258\u76d8\u4e0a\uff0c\u8ba9\u684c\u9762\u91cd\u65b0\u7559\u51fa\u7a7a\u6c14\u3002",
-		"background_color": Color(0.96, 0.92, 0.86, 1.0),
-		"desk_color": Color(0.78, 0.66, 0.55, 1.0),
-		"targets": [
-			{
-				"id": "tea_tray",
-				"label": "\u6728\u6258\u76d8",
-				"mode": "category_bin",
-				"accepted_category": "tea",
-				"position": Vector2(640, 345),
-				"size": Vector2(420, 205),
-				"slot_positions": [
-					Vector2(-138, -18),
-					Vector2(-46, 18),
-					Vector2(50, -14),
-					Vector2(138, 16),
-				],
-				"color": Color(0.82, 0.69, 0.52, 0.58),
-			},
+		"title": "第四层：熄火祭室",
+		"goal": "赤甲守卫会重击，药水要留到真正需要时。",
+		"room_count": 10,
+		"enemy_groups": [
+			{"type": "cultist", "count": 3},
+			{"type": "ghost", "count": 2},
+			{"type": "brute", "count": 2},
 		],
-		"items": [
-			{
-				"id": "teacup",
-				"label": "\u82b1\u8fb9\u8336\u676f",
-				"target_id": "tea_tray",
-				"category": "tea",
-				"home_position": Vector2(220, 594),
-				"size": Vector2(112, 76),
-				"color": Color(0.97, 0.86, 0.75, 1.0),
-			},
-			{
-				"id": "teabag",
-				"label": "\u8336\u5305",
-				"target_id": "tea_tray",
-				"category": "tea",
-				"home_position": Vector2(430, 608),
-				"size": Vector2(104, 66),
-				"color": Color(0.86, 0.74, 0.53, 1.0),
-			},
-			{
-				"id": "cookie",
-				"label": "\u5c0f\u997c\u5e72",
-				"target_id": "tea_tray",
-				"category": "tea",
-				"home_position": Vector2(760, 598),
-				"size": Vector2(108, 72),
-				"color": Color(0.91, 0.70, 0.48, 1.0),
-			},
-			{
-				"id": "napkin",
-				"label": "\u683c\u7eb9\u9910\u5dfe",
-				"target_id": "tea_tray",
-				"category": "tea",
-				"home_position": Vector2(1030, 598),
-				"size": Vector2(122, 76),
-				"color": Color(0.78, 0.86, 0.93, 1.0),
-			},
-		],
+		"potions": 3,
+		"coins": 7,
+		"gear": [],
 	},
 	{
-		"title": "\u753b\u5177\u5de5\u4f5c\u53f0",
-		"goal": "\u5de6\u4fa7\u6536\u597d\u989c\u8272\u6750\u6599\uff0c\u53f3\u4fa7\u653e\u597d\u4fee\u6574\u5de5\u5177\u3002",
-		"background_color": Color(0.93, 0.94, 0.90, 1.0),
-		"desk_color": Color(0.72, 0.78, 0.70, 1.0),
-		"targets": [
-			{
-				"id": "paint_box",
-				"label": "\u989c\u8272\u76d2",
-				"mode": "category_bin",
-				"accepted_category": "color_supply",
-				"position": Vector2(405, 338),
-				"size": Vector2(270, 178),
-				"slot_positions": [
-					Vector2(-70, -22),
-					Vector2(0, 16),
-					Vector2(72, -12),
-				],
-				"color": Color(0.72, 0.80, 0.88, 0.56),
-			},
-			{
-				"id": "tool_cup",
-				"label": "\u5de5\u5177\u676f",
-				"mode": "category_bin",
-				"accepted_category": "craft_tool",
-				"position": Vector2(890, 338),
-				"size": Vector2(270, 178),
-				"slot_positions": [
-					Vector2(-66, -20),
-					Vector2(4, 18),
-					Vector2(76, -10),
-				],
-				"color": Color(0.88, 0.77, 0.66, 0.56),
-			},
+		"title": "第五层：深井王座",
+		"goal": "击败深井看守，带着宝物离开地牢。",
+		"room_count": 10,
+		"enemy_groups": [
+			{"type": "ghost", "count": 2},
+			{"type": "brute", "count": 2},
+			{"type": "boss", "count": 1},
 		],
-		"items": [
-			{
-				"id": "watercolor",
-				"label": "\u6c34\u5f69\u76d2",
-				"target_id": "paint_box",
-				"category": "color_supply",
-				"home_position": Vector2(190, 595),
-				"size": Vector2(126, 76),
-				"color": Color(0.72, 0.83, 0.96, 1.0),
-			},
-			{
-				"id": "crayon",
-				"label": "\u8721\u7b14",
-				"target_id": "paint_box",
-				"category": "color_supply",
-				"home_position": Vector2(390, 608),
-				"size": Vector2(112, 62),
-				"color": Color(0.96, 0.72, 0.61, 1.0),
-			},
-			{
-				"id": "palette",
-				"label": "\u8c03\u8272\u76d8",
-				"target_id": "paint_box",
-				"category": "color_supply",
-				"home_position": Vector2(600, 596),
-				"size": Vector2(114, 76),
-				"color": Color(0.96, 0.88, 0.70, 1.0),
-			},
-			{
-				"id": "tape",
-				"label": "\u80f6\u5e26",
-				"target_id": "tool_cup",
-				"category": "craft_tool",
-				"home_position": Vector2(810, 598),
-				"size": Vector2(108, 70),
-				"color": Color(0.80, 0.88, 0.78, 1.0),
-			},
-			{
-				"id": "ruler",
-				"label": "\u76f4\u5c3a",
-				"target_id": "tool_cup",
-				"category": "craft_tool",
-				"home_position": Vector2(1010, 608),
-				"size": Vector2(128, 58),
-				"color": Color(0.95, 0.84, 0.52, 1.0),
-			},
-			{
-				"id": "clip",
-				"label": "\u957f\u5c3e\u5939",
-				"target_id": "tool_cup",
-				"category": "craft_tool",
-				"home_position": Vector2(1182, 598),
-				"size": Vector2(98, 70),
-				"color": Color(0.78, 0.74, 0.91, 1.0),
-			},
-		],
-	},
-	{
-		"title": "\u90ae\u4ef6\u4e0e\u7968\u6839",
-		"goal": "\u628a\u4e66\u4fe1\u653e\u8fdb\u7eb8\u5939\uff0c\u628a\u65c5\u884c\u5c0f\u7968\u8d34\u5230\u56de\u5fc6\u677f\u4e0a\u3002",
-		"background_color": Color(0.95, 0.92, 0.88, 1.0),
-		"desk_color": Color(0.80, 0.72, 0.63, 1.0),
-		"targets": [
-			{
-				"id": "letter_folder",
-				"label": "\u4e66\u4fe1\u7eb8\u5939",
-				"mode": "category_bin",
-				"accepted_category": "letter",
-				"position": Vector2(390, 338),
-				"size": Vector2(285, 180),
-				"slot_positions": [
-					Vector2(-76, -18),
-					Vector2(0, 18),
-					Vector2(78, -10),
-				],
-				"color": Color(0.88, 0.78, 0.64, 0.56),
-			},
-			{
-				"id": "memory_board",
-				"label": "\u56de\u5fc6\u677f",
-				"mode": "category_bin",
-				"accepted_category": "memory",
-				"position": Vector2(895, 338),
-				"size": Vector2(285, 180),
-				"slot_positions": [
-					Vector2(-78, -16),
-					Vector2(0, 16),
-					Vector2(80, -8),
-				],
-				"color": Color(0.74, 0.82, 0.84, 0.56),
-			},
-		],
-		"items": [
-			{
-				"id": "envelope",
-				"label": "\u4fe1\u5c01",
-				"target_id": "letter_folder",
-				"category": "letter",
-				"home_position": Vector2(190, 596),
-				"size": Vector2(122, 72),
-				"color": Color(0.96, 0.91, 0.80, 1.0),
-			},
-			{
-				"id": "postcard",
-				"label": "\u660e\u4fe1\u7247",
-				"target_id": "letter_folder",
-				"category": "letter",
-				"home_position": Vector2(390, 606),
-				"size": Vector2(118, 68),
-				"color": Color(0.78, 0.88, 0.93, 1.0),
-			},
-			{
-				"id": "stamp",
-				"label": "\u90ae\u7968\u5c0f\u888b",
-				"target_id": "letter_folder",
-				"category": "letter",
-				"home_position": Vector2(590, 596),
-				"size": Vector2(102, 72),
-				"color": Color(0.90, 0.75, 0.80, 1.0),
-			},
-			{
-				"id": "ticket",
-				"label": "\u8f66\u7968",
-				"target_id": "memory_board",
-				"category": "memory",
-				"home_position": Vector2(800, 608),
-				"size": Vector2(120, 58),
-				"color": Color(0.95, 0.84, 0.56, 1.0),
-			},
-			{
-				"id": "photo",
-				"label": "\u5c0f\u7167\u7247",
-				"target_id": "memory_board",
-				"category": "memory",
-				"home_position": Vector2(1000, 596),
-				"size": Vector2(112, 76),
-				"color": Color(0.80, 0.86, 0.94, 1.0),
-			},
-			{
-				"id": "map_piece",
-				"label": "\u5730\u56fe\u7247",
-				"target_id": "memory_board",
-				"category": "memory",
-				"home_position": Vector2(1180, 606),
-				"size": Vector2(104, 66),
-				"color": Color(0.76, 0.86, 0.70, 1.0),
-			},
-		],
-	},
-	{
-		"title": "\u591c\u665a\u5e8a\u5934\u67dc",
-		"goal": "\u6309\u8f6e\u5ed3\u628a\u7761\u524d\u5c0f\u7269\u4ef6\u653e\u56de\u5e8a\u5934\uff0c\u8ba9\u706f\u5149\u6162\u6162\u5b89\u9759\u4e0b\u6765\u3002",
-		"background_color": Color(0.85, 0.87, 0.91, 1.0),
-		"desk_color": Color(0.62, 0.61, 0.69, 1.0),
-		"targets": [
-			{
-				"id": "sleep_lamp_slot",
-				"label": "\u5c0f\u591c\u706f",
-				"mode": "single",
-				"accepted_item_ids": ["sleep_lamp"],
-				"position": Vector2(310, 338),
-				"size": Vector2(138, 120),
-				"color": Color(0.72, 0.70, 0.82, 0.5),
-			},
-			{
-				"id": "glasses_slot",
-				"label": "\u773c\u955c",
-				"mode": "single",
-				"accepted_item_ids": ["glasses"],
-				"position": Vector2(530, 365),
-				"size": Vector2(130, 88),
-				"color": Color(0.70, 0.74, 0.84, 0.5),
-			},
-			{
-				"id": "bookmark_slot",
-				"label": "\u4e66\u7b7e",
-				"mode": "single",
-				"accepted_item_ids": ["bookmark"],
-				"position": Vector2(750, 365),
-				"size": Vector2(106, 150),
-				"color": Color(0.74, 0.73, 0.84, 0.5),
-			},
-			{
-				"id": "clock_slot",
-				"label": "\u5c0f\u95f9\u949f",
-				"mode": "single",
-				"accepted_item_ids": ["clock"],
-				"position": Vector2(980, 338),
-				"size": Vector2(140, 112),
-				"color": Color(0.70, 0.74, 0.84, 0.5),
-			},
-		],
-		"items": [
-			{
-				"id": "clock",
-				"label": "\u5c0f\u95f9\u949f",
-				"target_id": "clock_slot",
-				"home_position": Vector2(200, 596),
-				"size": Vector2(114, 78),
-				"color": Color(0.86, 0.78, 0.92, 1.0),
-			},
-			{
-				"id": "sleep_lamp",
-				"label": "\u5c0f\u591c\u706f",
-				"target_id": "sleep_lamp_slot",
-				"home_position": Vector2(480, 596),
-				"size": Vector2(118, 82),
-				"color": Color(0.97, 0.88, 0.60, 1.0),
-			},
-			{
-				"id": "bookmark",
-				"label": "\u5e03\u4e66\u7b7e",
-				"target_id": "bookmark_slot",
-				"home_position": Vector2(760, 606),
-				"size": Vector2(98, 88),
-				"color": Color(0.82, 0.68, 0.84, 1.0),
-			},
-			{
-				"id": "glasses",
-				"label": "\u5706\u773c\u955c",
-				"target_id": "glasses_slot",
-				"home_position": Vector2(1040, 606),
-				"size": Vector2(112, 66),
-				"color": Color(0.78, 0.88, 0.94, 1.0),
-			},
-		],
-	},
-	{
-		"title": "\u53a8\u623f\u62bd\u5c49",
-		"goal": "\u628a\u9910\u5177\u548c\u8c03\u5473\u5c0f\u7269\u5206\u5f00\uff0c\u8ba9\u62bd\u5c49\u91cc\u6bcf\u4e00\u683c\u90fd\u6e05\u6e05\u695a\u695a\u3002",
-		"background_color": Color(0.95, 0.94, 0.89, 1.0),
-		"desk_color": Color(0.76, 0.69, 0.58, 1.0),
-		"targets": [
-			{
-				"id": "cutlery_drawer",
-				"label": "\u9910\u5177\u683c",
-				"mode": "category_bin",
-				"accepted_category": "cutlery",
-				"position": Vector2(390, 342),
-				"size": Vector2(285, 190),
-				"slot_positions": [
-					Vector2(-76, -18),
-					Vector2(0, 18),
-					Vector2(78, -10),
-				],
-				"color": Color(0.82, 0.74, 0.62, 0.56),
-			},
-			{
-				"id": "seasoning_drawer",
-				"label": "\u8c03\u5473\u683c",
-				"mode": "category_bin",
-				"accepted_category": "seasoning",
-				"position": Vector2(895, 342),
-				"size": Vector2(285, 190),
-				"slot_positions": [
-					Vector2(-78, -16),
-					Vector2(0, 16),
-					Vector2(80, -8),
-				],
-				"color": Color(0.82, 0.80, 0.66, 0.56),
-			},
-		],
-		"items": [
-			{
-				"id": "fork",
-				"label": "\u53c9\u5b50",
-				"target_id": "cutlery_drawer",
-				"category": "cutlery",
-				"home_position": Vector2(184, 606),
-				"size": Vector2(112, 62),
-				"color": Color(0.78, 0.82, 0.86, 1.0),
-			},
-			{
-				"id": "knife",
-				"label": "\u9910\u5200",
-				"target_id": "cutlery_drawer",
-				"category": "cutlery",
-				"home_position": Vector2(380, 606),
-				"size": Vector2(118, 62),
-				"color": Color(0.76, 0.80, 0.84, 1.0),
-			},
-			{
-				"id": "chopsticks",
-				"label": "\u7b77\u5b50",
-				"target_id": "cutlery_drawer",
-				"category": "cutlery",
-				"home_position": Vector2(585, 606),
-				"size": Vector2(126, 58),
-				"color": Color(0.80, 0.62, 0.44, 1.0),
-			},
-			{
-				"id": "salt",
-				"label": "\u76d0\u7f50",
-				"target_id": "seasoning_drawer",
-				"category": "seasoning",
-				"home_position": Vector2(800, 596),
-				"size": Vector2(104, 74),
-				"color": Color(0.94, 0.94, 0.89, 1.0),
-			},
-			{
-				"id": "pepper",
-				"label": "\u80e1\u6912\u74f6",
-				"target_id": "seasoning_drawer",
-				"category": "seasoning",
-				"home_position": Vector2(1000, 596),
-				"size": Vector2(104, 74),
-				"color": Color(0.68, 0.63, 0.58, 1.0),
-			},
-			{
-				"id": "sauce",
-				"label": "\u9171\u6c41\u74f6",
-				"target_id": "seasoning_drawer",
-				"category": "seasoning",
-				"home_position": Vector2(1180, 596),
-				"size": Vector2(102, 78),
-				"color": Color(0.92, 0.68, 0.50, 1.0),
-			},
-		],
-	},
-	{
-		"title": "\u65c5\u884c\u6536\u7eb3",
-		"goal": "\u8863\u7269\u8fdb\u884c\u674e\u7bb1\uff0c\u968f\u8eab\u7269\u8fdb\u5c0f\u5305\uff0c\u6d17\u6f31\u7269\u8fdb\u9632\u6c34\u888b\u3002",
-		"background_color": Color(0.91, 0.93, 0.92, 1.0),
-		"desk_color": Color(0.66, 0.73, 0.71, 1.0),
-		"targets": [
-			{
-				"id": "suitcase",
-				"label": "\u884c\u674e\u7bb1",
-				"mode": "category_bin",
-				"accepted_category": "clothes",
-				"position": Vector2(300, 344),
-				"size": Vector2(240, 180),
-				"slot_positions": [
-					Vector2(-58, -16),
-					Vector2(18, 16),
-				],
-				"color": Color(0.70, 0.78, 0.76, 0.56),
-			},
-			{
-				"id": "day_bag",
-				"label": "\u968f\u8eab\u5305",
-				"mode": "category_bin",
-				"accepted_category": "daily_carry",
-				"position": Vector2(640, 344),
-				"size": Vector2(240, 180),
-				"slot_positions": [
-					Vector2(-58, -16),
-					Vector2(18, 16),
-				],
-				"color": Color(0.78, 0.74, 0.86, 0.56),
-			},
-			{
-				"id": "wash_pouch",
-				"label": "\u6d17\u6f31\u888b",
-				"mode": "category_bin",
-				"accepted_category": "toiletry",
-				"position": Vector2(980, 344),
-				"size": Vector2(240, 180),
-				"slot_positions": [
-					Vector2(-58, -16),
-					Vector2(18, 16),
-				],
-				"color": Color(0.78, 0.84, 0.88, 0.56),
-			},
-		],
-		"items": [
-			{
-				"id": "shirt",
-				"label": "\u886c\u886b",
-				"target_id": "suitcase",
-				"category": "clothes",
-				"home_position": Vector2(160, 596),
-				"size": Vector2(106, 76),
-				"color": Color(0.74, 0.84, 0.94, 1.0),
-			},
-			{
-				"id": "socks",
-				"label": "\u889c\u5b50",
-				"target_id": "suitcase",
-				"category": "clothes",
-				"home_position": Vector2(330, 606),
-				"size": Vector2(104, 64),
-				"color": Color(0.92, 0.78, 0.78, 1.0),
-			},
-			{
-				"id": "passport",
-				"label": "\u62a4\u7167",
-				"target_id": "day_bag",
-				"category": "daily_carry",
-				"home_position": Vector2(510, 596),
-				"size": Vector2(104, 74),
-				"color": Color(0.62, 0.72, 0.88, 1.0),
-			},
-			{
-				"id": "headphones",
-				"label": "\u8033\u673a",
-				"target_id": "day_bag",
-				"category": "daily_carry",
-				"home_position": Vector2(690, 606),
-				"size": Vector2(108, 66),
-				"color": Color(0.72, 0.70, 0.78, 1.0),
-			},
-			{
-				"id": "toothbrush",
-				"label": "\u7259\u5237",
-				"target_id": "wash_pouch",
-				"category": "toiletry",
-				"home_position": Vector2(870, 606),
-				"size": Vector2(112, 60),
-				"color": Color(0.73, 0.88, 0.88, 1.0),
-			},
-			{
-				"id": "soap",
-				"label": "\u9999\u7682",
-				"target_id": "wash_pouch",
-				"category": "toiletry",
-				"home_position": Vector2(1060, 596),
-				"size": Vector2(104, 70),
-				"color": Color(0.96, 0.84, 0.72, 1.0),
-			},
-		],
-	},
-	{
-		"title": "\u56de\u5fc6\u5c55\u793a\u67b6",
-		"goal": "\u628a\u6700\u540e\u7684\u5c0f\u56de\u5fc6\u653e\u5230\u5bf9\u5e94\u683c\u5b50\uff0c\u5b8c\u6210\u8fd9\u4e00\u9875\u6574\u7406\u65f6\u5149\u3002",
-		"background_color": Color(0.95, 0.91, 0.88, 1.0),
-		"desk_color": Color(0.74, 0.65, 0.57, 1.0),
-		"targets": [
-			{
-				"id": "keepsake_photo_slot",
-				"label": "\u7167\u7247\u683c",
-				"mode": "single",
-				"accepted_item_ids": ["keepsake_photo"],
-				"position": Vector2(280, 326),
-				"size": Vector2(138, 118),
-				"color": Color(0.77, 0.76, 0.70, 0.5),
-			},
-			{
-				"id": "shell_slot",
-				"label": "\u8d1d\u58f3\u683c",
-				"mode": "single",
-				"accepted_item_ids": ["shell"],
-				"position": Vector2(500, 370),
-				"size": Vector2(128, 96),
-				"color": Color(0.78, 0.80, 0.73, 0.5),
-			},
-			{
-				"id": "key_slot",
-				"label": "\u94a5\u5319\u683c",
-				"mode": "single",
-				"accepted_item_ids": ["key"],
-				"position": Vector2(720, 370),
-				"size": Vector2(128, 96),
-				"color": Color(0.78, 0.76, 0.70, 0.5),
-			},
-			{
-				"id": "tiny_plant_slot",
-				"label": "\u5c0f\u690d\u7269",
-				"mode": "single",
-				"accepted_item_ids": ["tiny_plant"],
-				"position": Vector2(940, 326),
-				"size": Vector2(136, 120),
-				"color": Color(0.76, 0.82, 0.74, 0.5),
-			},
-		],
-		"items": [
-			{
-				"id": "shell",
-				"label": "\u767d\u8d1d\u58f3",
-				"target_id": "shell_slot",
-				"home_position": Vector2(190, 596),
-				"size": Vector2(104, 72),
-				"color": Color(0.95, 0.86, 0.76, 1.0),
-			},
-			{
-				"id": "key",
-				"label": "\u65e7\u94a5\u5319",
-				"target_id": "key_slot",
-				"home_position": Vector2(470, 606),
-				"size": Vector2(112, 60),
-				"color": Color(0.90, 0.78, 0.50, 1.0),
-			},
-			{
-				"id": "keepsake_photo",
-				"label": "\u62cd\u7acb\u5f97",
-				"target_id": "keepsake_photo_slot",
-				"home_position": Vector2(750, 596),
-				"size": Vector2(114, 82),
-				"color": Color(0.86, 0.92, 0.96, 1.0),
-			},
-			{
-				"id": "tiny_plant",
-				"label": "\u5c0f\u690d\u7269",
-				"target_id": "tiny_plant_slot",
-				"home_position": Vector2(1030, 596),
-				"size": Vector2(112, 78),
-				"color": Color(0.76, 0.88, 0.68, 1.0),
-			},
-		],
+		"potions": 4,
+		"coins": 8,
+		"gear": ["sword", "shield"],
 	},
 ]
 
-@onready var background: ColorRect = $Background
-@onready var backdrop_glow: ColorRect = $BackdropGlow
-@onready var desk_surface: ColorRect = $DeskSurface
-@onready var decor_layer: Node2D = $DecorLayer
-@onready var targets_layer: Node2D = $TargetsLayer
-@onready var items_layer: Node2D = $ItemsLayer
-@onready var completion_layer: CanvasLayer = $CompletionLayer
-@onready var completion_shade: ColorRect = $CompletionLayer/CompletionShade
-@onready var completion_panel: Panel = $CompletionLayer/CompletionPanel
-@onready var completion_title: Label = $CompletionLayer/CompletionPanel/CompletionTitle
-@onready var completion_label: Label = $CompletionLayer/CompletionPanel/CompletionLabel
-@onready var next_button: Button = $CompletionLayer/CompletionPanel/NextButton
-@onready var hud: CanvasLayer = $HUD
-@onready var menu_layer: CanvasLayer = $MenuLayer
-@onready var menu_title: Label = $MenuLayer/MenuPanel/TitleLabel
-@onready var menu_subtitle: Label = $MenuLayer/MenuPanel/SubtitleLabel
-@onready var start_button: Button = $MenuLayer/MenuPanel/StartButton
-@onready var continue_button: Button = $MenuLayer/MenuPanel/ContinueButton
-@onready var instructions_button: Button = $MenuLayer/MenuPanel/InstructionsButton
-@onready var quit_button: Button = $MenuLayer/MenuPanel/QuitButton
-@onready var instructions_layer: CanvasLayer = $InstructionsLayer
-@onready var instructions_title: Label = $InstructionsLayer/InstructionsPanel/TitleLabel
-@onready var instructions_body: Label = $InstructionsLayer/InstructionsPanel/BodyLabel
-@onready var instructions_back_button: Button = $InstructionsLayer/InstructionsPanel/BackButton
-@onready var pause_layer: CanvasLayer = $PauseLayer
-@onready var pause_title: Label = $PauseLayer/PausePanel/TitleLabel
-@onready var pause_resume_button: Button = $PauseLayer/PausePanel/ResumeButton
-@onready var pause_reset_button: Button = $PauseLayer/PausePanel/ResetButton
-@onready var pause_home_button: Button = $PauseLayer/PausePanel/HomeButton
-@onready var tutorial_layer: CanvasLayer = $TutorialLayer
-@onready var tutorial_panel: Panel = $TutorialLayer/TutorialPanel
-@onready var tutorial_label: Label = $TutorialLayer/TutorialPanel/TutorialLabel
+var rng := RandomNumberGenerator.new()
+var textures: Dictionary = {}
+var dungeon: Array = []
+var rooms: Array[Rect2i] = []
+var current_level_index := 0
+var run_outcome := RunOutcome.NONE
 
-var current_level_data: Dictionary = {}
-var current_loaded_level_index: int = 0
-var active_targets: Array[DropTarget] = []
-var active_items: Array[DraggableItem] = []
-var active_drag_item: DraggableItem = null
-var instruction_return_state: int = GameState.Menu
-var tutorial_active: bool = false
-var tutorial_step: int = -1
-var tutorial_sequence_running: bool = false
-var save_available_before_session: bool = false
+var player_cell := Vector2i.ZERO
+var player_hp := 8
+var player_max_hp := 8
+var player_attack := 2
+var exit_cell := Vector2i.ZERO
+var exit_open := false
+
+var enemies: Array[Dictionary] = []
+var items: Array[Dictionary] = []
+var log_lines: Array[String] = []
+
+var background_layer: CanvasLayer
+var map_layer: Node2D
+var decor_layer: Node2D
+var item_layer: Node2D
+var actor_layer: Node2D
+var fx_layer: Node2D
+var ui_layer: CanvasLayer
+
+var player_node: Node2D
+var exit_node: Sprite2D
+var title_label: Label
+var goal_label: Label
+var hp_label: Label
+var attack_label: Label
+var score_label: Label
+var depth_label: Label
+var enemies_label: Label
+var status_label: Label
+var log_label: Label
+var continue_button: Button
+var menu_layer: CanvasLayer
+var instructions_layer: CanvasLayer
+var pause_layer: CanvasLayer
+var result_layer: CanvasLayer
+var result_title_label: Label
+var result_body_label: Label
+var result_primary_button: Button
+var result_secondary_button: Button
 
 
 func _ready() -> void:
-	save_available_before_session = SaveManager.has_save_data()
-	_set_static_copy()
-	_style_overlay_panels()
-	_configure_overlay_input()
-	_connect_buttons()
+	rng.randomize()
+	_load_textures()
+	_build_scene()
+	GameData.configure_levels(LEVEL_DEFS.size())
+	_refresh_continue_button()
+	show_menu()
 
-	GameState.state_changed.connect(_on_game_state_changed)
-	GameState.level_completed.connect(_on_game_state_level_completed)
 
-	GameData.configure_levels(LEVELS.size())
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		var key_event := event as InputEventKey
+		if key_event.keycode == KEY_ESCAPE:
+			_handle_escape()
+			return
+
+		if GameState.current_state == GameState.Playing:
+			var direction := _direction_from_key(key_event.keycode)
+			if direction != Vector2i.ZERO:
+				_attempt_player_step(direction)
+				return
+			if key_event.keycode == KEY_SPACE or key_event.keycode == KEY_PERIOD:
+				_wait_turn()
+				return
+			if key_event.keycode == KEY_R:
+				restart_level()
+				return
+
+		if GameState.current_state == GameState.Menu and key_event.keycode == KEY_ENTER:
+			start_new_run()
+			return
+
+		if GameState.current_state == GameState.Completed and key_event.keycode == KEY_ENTER:
+			_on_result_primary_pressed()
+
+
+func show_menu() -> void:
+	GameState.show_menu()
+	menu_layer.visible = true
+	instructions_layer.visible = false
+	pause_layer.visible = false
+	result_layer.visible = false
+	_set_hud_visible(false)
+	_refresh_continue_button()
+
+
+func show_instructions() -> void:
+	GameState.show_instructions()
+	menu_layer.visible = false
+	instructions_layer.visible = true
+	pause_layer.visible = false
+	result_layer.visible = false
+	_set_hud_visible(false)
+
+
+func hide_instructions() -> void:
+	show_menu()
+
+
+func start_new_run() -> void:
+	GameData.configure_levels(LEVEL_DEFS.size())
+	GameData.reset_progress()
+	GameData.reset_hint_count()
+	GameData.reset()
+	player_max_hp = 8
+	player_hp = player_max_hp
+	player_attack = 2
+	GameData.player_health = player_hp
+	GameData.health_changed.emit(player_hp)
+	GameData.set_current_level(0)
+	run_outcome = RunOutcome.NONE
+	log_lines.clear()
+	_add_log("你推开旧井门，火把在潮湿空气里亮了一下。")
+	_load_level(0)
+
+
+func continue_run() -> void:
+	if not SaveManager.has_save_data():
+		start_new_run()
+		return
+
 	var progress := SaveManager.get_progress_data()
+	GameData.configure_levels(LEVEL_DEFS.size())
 	GameData.restore_progress(
 		progress.get("completed_levels", []),
 		int(progress.get("current_level_index", 0)),
 		int(progress.get("hint_count", 0)),
 		bool(progress.get("has_seen_tutorial", false))
 	)
-
-	_refresh_continue_button()
-	show_menu()
-
-
-func start_new_game() -> void:
-	GameData.reset_progress()
-	GameData.reset_hint_count()
-	load_level(0)
-
-
-func continue_game() -> void:
-	if not SaveManager.has_save_data():
-		return
-	load_level(GameData.current_level_index)
+	player_max_hp = 8
+	player_hp = player_max_hp
+	player_attack = 2
+	GameData.reset()
+	GameData.player_health = player_hp
+	GameData.health_changed.emit(player_hp)
+	run_outcome = RunOutcome.NONE
+	log_lines.clear()
+	_add_log("你从上次记录的楼层继续深入。")
+	_load_level(GameData.current_level_index)
 
 
-func load_level(level_id: int) -> void:
-	var index := clampi(level_id, 0, LEVELS.size() - 1)
-	current_loaded_level_index = index
-	current_level_data = LEVELS[index]
-	_clear_level_nodes()
-	_build_level(current_level_data, index)
-	GameData.start_level(index)
-	GameState.start_level(index)
-	completion_layer.visible = false
-	level_loaded.emit(current_level_data)
-	_emit_progress()
-	_save_progress(true)
-	_maybe_start_tutorial(index)
-
-
-func reset_level() -> void:
-	load_level(current_loaded_level_index)
-
-
-func show_hint() -> void:
-	if GameState.current_state != GameState.Playing:
-		return
-
-	for item in active_items:
-		if not item.is_correctly_placed():
-			item.pulse_hint()
-			var target := _find_target_by_id(item.solution_target_id)
-			if target != null:
-				target.pulse_hint()
-			GameData.register_hint()
-			AudioManager.play_sound("hint")
-			_save_progress(true)
-			return
-
-
-func show_menu() -> void:
-	_hide_tutorial()
-	GameState.show_menu()
-	_refresh_continue_button()
-
-
-func show_instructions() -> void:
-	if GameState.current_state == GameState.Instructions:
-		return
-	instruction_return_state = GameState.current_state
-	GameState.show_instructions()
-
-
-func hide_instructions() -> void:
-	if instruction_return_state == GameState.Menu:
-		GameState.show_menu()
-	else:
-		GameState.set_state(instruction_return_state)
-
-
-func pause_game() -> void:
-	if GameState.current_state == GameState.Playing:
-		GameState.set_state(GameState.Paused)
+func restart_level() -> void:
+	player_hp = player_max_hp
+	GameData.player_health = player_hp
+	GameData.health_changed.emit(player_hp)
+	_add_log("你重新整理装备，再次踏入这一层。")
+	_load_level(current_level_index)
 
 
 func resume_game() -> void:
 	if GameState.current_state == GameState.Paused:
 		GameState.set_state(GameState.Playing)
+		pause_layer.visible = false
+		_set_hud_visible(true)
 
 
-func get_current_level_data() -> Dictionary:
-	return current_level_data
+func pause_game() -> void:
+	if GameState.current_state != GameState.Playing:
+		return
+	GameState.set_state(GameState.Paused)
+	pause_layer.visible = true
+	_set_hud_visible(true)
 
 
-func get_current_level_index() -> int:
-	return current_loaded_level_index
+func _load_level(level_index: int) -> void:
+	current_level_index = clampi(level_index, 0, LEVEL_DEFS.size() - 1)
+	GameData.start_level(current_level_index)
+	GameState.start_level(current_level_index)
+	menu_layer.visible = false
+	instructions_layer.visible = false
+	pause_layer.visible = false
+	result_layer.visible = false
+	_set_hud_visible(true)
+
+	_generate_dungeon()
+	_populate_level()
+	_render_level()
+	_refresh_hud()
+	_add_log("进入 " + str(LEVEL_DEFS[current_level_index]["title"]) + "。")
 
 
-func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("ui_cancel"):
-		match GameState.current_state:
-			GameState.Instructions:
-				hide_instructions()
-				get_viewport().set_input_as_handled()
-				return
-			GameState.Playing:
-				pause_game()
-				get_viewport().set_input_as_handled()
-				return
-			GameState.Paused:
-				resume_game()
-				get_viewport().set_input_as_handled()
-				return
+func _load_textures() -> void:
+	for key in TEXTURE_PATHS.keys():
+		var loaded := load(str(TEXTURE_PATHS[key]))
+		if loaded is Texture2D:
+			textures[key] = loaded
 
+
+func _build_scene() -> void:
+	background_layer = CanvasLayer.new()
+	add_child(background_layer)
+	var background := ColorRect.new()
+	background.size = WINDOW_SIZE
+	background.color = Color(0.075, 0.09, 0.085, 1.0)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	background_layer.add_child(background)
+
+	var map_backing := ColorRect.new()
+	map_backing.position = MAP_ORIGIN - Vector2(8, 8)
+	map_backing.size = MAP_SIZE + Vector2(16, 16)
+	map_backing.color = Color(0.04, 0.045, 0.044, 1.0)
+	map_backing.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	background_layer.add_child(map_backing)
+
+	map_layer = Node2D.new()
+	map_layer.name = "MapLayer"
+	add_child(map_layer)
+
+	decor_layer = Node2D.new()
+	decor_layer.name = "DecorLayer"
+	add_child(decor_layer)
+
+	item_layer = Node2D.new()
+	item_layer.name = "ItemLayer"
+	add_child(item_layer)
+
+	actor_layer = Node2D.new()
+	actor_layer.name = "ActorLayer"
+	add_child(actor_layer)
+
+	fx_layer = Node2D.new()
+	fx_layer.name = "FxLayer"
+	add_child(fx_layer)
+
+	ui_layer = CanvasLayer.new()
+	ui_layer.name = "UILayer"
+	add_child(ui_layer)
+	_build_hud()
+	_build_menu()
+	_build_instructions()
+	_build_pause()
+	_build_result_layer()
+
+
+func _build_hud() -> void:
+	var panel := Panel.new()
+	panel.position = Vector2(PANEL_X, 28)
+	panel.size = Vector2(236, 664)
+	panel.add_theme_stylebox_override("panel", _panel_style(Color(0.105, 0.125, 0.115, 0.96), Color(0.35, 0.46, 0.34, 0.9)))
+	ui_layer.add_child(panel)
+
+	title_label = _make_label(panel, Vector2(18, 18), Vector2(200, 58), "", 24, Color(0.96, 0.92, 0.74, 1.0))
+	goal_label = _make_label(panel, Vector2(18, 80), Vector2(200, 74), "", 15, Color(0.78, 0.84, 0.74, 1.0))
+	depth_label = _make_label(panel, Vector2(18, 168), Vector2(200, 28), "", 17, Color(0.98, 0.75, 0.42, 1.0))
+	hp_label = _make_label(panel, Vector2(18, 212), Vector2(200, 28), "", 18, Color(0.95, 0.46, 0.36, 1.0))
+	attack_label = _make_label(panel, Vector2(18, 244), Vector2(200, 28), "", 18, Color(0.78, 0.86, 0.98, 1.0))
+	score_label = _make_label(panel, Vector2(18, 276), Vector2(200, 28), "", 18, Color(0.94, 0.82, 0.45, 1.0))
+	enemies_label = _make_label(panel, Vector2(18, 308), Vector2(200, 28), "", 18, Color(0.83, 0.74, 0.96, 1.0))
+	status_label = _make_label(panel, Vector2(18, 354), Vector2(200, 70), "", 15, Color(0.78, 0.86, 0.80, 1.0))
+	log_label = _make_label(panel, Vector2(18, 438), Vector2(200, 178), "", 14, Color(0.68, 0.74, 0.70, 1.0))
+
+	var hint := _make_label(panel, Vector2(18, 622), Vector2(200, 28), "Esc 暂停  |  R 重开本层", 13, Color(0.55, 0.63, 0.58, 1.0))
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+
+func _build_menu() -> void:
+	menu_layer = CanvasLayer.new()
+	menu_layer.name = "MenuLayer"
+	add_child(menu_layer)
+	_add_overlay_shade(menu_layer, Color(0.03, 0.04, 0.04, 0.72))
+
+	var panel := _make_center_panel(menu_layer, Vector2(540, 420))
+	_make_label(panel, Vector2(38, 30), Vector2(464, 48), "井下余烬", 38, Color(0.98, 0.88, 0.58, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	_make_label(panel, Vector2(58, 88), Vector2(424, 70), "一款小型回合制地牢 roguelike。清理每层敌人，搜刮补给，走到出口继续深入。", 17, Color(0.72, 0.82, 0.74, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	var start_button := _make_button(panel, Vector2(154, 178), Vector2(232, 44), "开始新探险")
+	start_button.pressed.connect(start_new_run)
+	continue_button = _make_button(panel, Vector2(154, 232), Vector2(232, 44), "继续探险")
+	continue_button.pressed.connect(continue_run)
+	var instructions_button := _make_button(panel, Vector2(154, 286), Vector2(232, 44), "探索指南")
+	instructions_button.pressed.connect(show_instructions)
+	var quit_button := _make_button(panel, Vector2(154, 340), Vector2(232, 44), "退出")
+	quit_button.pressed.connect(_quit_game)
+
+
+func _build_instructions() -> void:
+	instructions_layer = CanvasLayer.new()
+	instructions_layer.name = "InstructionsLayer"
+	instructions_layer.visible = false
+	add_child(instructions_layer)
+	_add_overlay_shade(instructions_layer, Color(0.03, 0.04, 0.04, 0.76))
+
+	var panel := _make_center_panel(instructions_layer, Vector2(690, 470))
+	_make_label(panel, Vector2(42, 30), Vector2(606, 44), "探索指南", 32, Color(0.98, 0.88, 0.58, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	var body := "方向键 / WASD / HJKL：移动；撞向敌人即可攻击。\n\nSpace 或 .：原地等待一回合。敌人会在你行动后移动或攻击。\n\n药水会立刻治疗，金币给分，剑提高攻击，盾提高最大生命。\n\n清掉本层所有敌人后，出口会点亮。踩上出口进入下一层。"
+	_make_label(panel, Vector2(60, 96), Vector2(570, 260), body, 18, Color(0.75, 0.84, 0.76, 1.0))
+	var back_button := _make_button(panel, Vector2(236, 382), Vector2(218, 44), "返回主菜单")
+	back_button.pressed.connect(hide_instructions)
+
+
+func _build_pause() -> void:
+	pause_layer = CanvasLayer.new()
+	pause_layer.name = "PauseLayer"
+	pause_layer.visible = false
+	add_child(pause_layer)
+	_add_overlay_shade(pause_layer, Color(0.03, 0.04, 0.04, 0.58))
+
+	var panel := _make_center_panel(pause_layer, Vector2(420, 304))
+	_make_label(panel, Vector2(40, 28), Vector2(340, 42), "暂停", 32, Color(0.98, 0.88, 0.58, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	var resume_button := _make_button(panel, Vector2(104, 98), Vector2(212, 42), "继续")
+	resume_button.pressed.connect(resume_game)
+	var restart_button := _make_button(panel, Vector2(104, 152), Vector2(212, 42), "重开本层")
+	restart_button.pressed.connect(restart_level)
+	var home_button := _make_button(panel, Vector2(104, 206), Vector2(212, 42), "回到主菜单")
+	home_button.pressed.connect(show_menu)
+
+
+func _build_result_layer() -> void:
+	result_layer = CanvasLayer.new()
+	result_layer.name = "ResultLayer"
+	result_layer.visible = false
+	add_child(result_layer)
+	_add_overlay_shade(result_layer, Color(0.02, 0.025, 0.025, 0.72))
+
+	var panel := _make_center_panel(result_layer, Vector2(560, 342))
+	result_title_label = _make_label(panel, Vector2(42, 30), Vector2(476, 46), "", 32, Color(0.98, 0.88, 0.58, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	result_body_label = _make_label(panel, Vector2(60, 96), Vector2(440, 116), "", 18, Color(0.76, 0.86, 0.78, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	result_primary_button = _make_button(panel, Vector2(90, 248), Vector2(176, 42), "继续")
+	result_primary_button.pressed.connect(_on_result_primary_pressed)
+	result_secondary_button = _make_button(panel, Vector2(294, 248), Vector2(176, 42), "主菜单")
+	result_secondary_button.pressed.connect(show_menu)
+
+
+func _generate_dungeon() -> void:
+	dungeon.clear()
+	rooms.clear()
+	for _y in range(GRID_HEIGHT):
+		var row := []
+		for _x in range(GRID_WIDTH):
+			row.append(Tile.WALL)
+		dungeon.append(row)
+
+	var level_def: Dictionary = LEVEL_DEFS[current_level_index]
+	var target_rooms := int(level_def.get("room_count", 7))
+	var attempts := 0
+	while rooms.size() < target_rooms and attempts < 180:
+		attempts += 1
+		var room_width := rng.randi_range(4, 8)
+		var room_height := rng.randi_range(3, 6)
+		var room_x := rng.randi_range(1, GRID_WIDTH - room_width - 2)
+		var room_y := rng.randi_range(1, GRID_HEIGHT - room_height - 2)
+		var candidate := Rect2i(room_x, room_y, room_width, room_height)
+		if _room_overlaps(candidate):
+			continue
+		rooms.append(candidate)
+		_carve_room(candidate)
+
+	if rooms.size() < 2:
+		_build_fallback_dungeon()
+	else:
+		for i in range(1, rooms.size()):
+			_carve_corridor(_room_center(rooms[i - 1]), _room_center(rooms[i]))
+
+	player_cell = _room_center(rooms[0])
+	exit_cell = _room_center(rooms[rooms.size() - 1])
+	exit_open = false
+
+
+func _build_fallback_dungeon() -> void:
+	rooms.clear()
+	for y in range(GRID_HEIGHT):
+		for x in range(GRID_WIDTH):
+			dungeon[y][x] = Tile.WALL
+
+	var first := Rect2i(2, 3, 8, 5)
+	var second := Rect2i(19, 10, 8, 5)
+	rooms.append(first)
+	rooms.append(second)
+	_carve_room(first)
+	_carve_room(second)
+	_carve_corridor(_room_center(first), _room_center(second))
+
+
+func _populate_level() -> void:
+	enemies.clear()
+	items.clear()
+
+	var reserved: Array[Vector2i] = [player_cell, exit_cell]
+	var level_def: Dictionary = LEVEL_DEFS[current_level_index]
+
+	for group in level_def.get("enemy_groups", []):
+		var enemy_type := str(group.get("type", "slime"))
+		var count := int(group.get("count", 0))
+		for _i in range(count):
+			var cell := _find_empty_floor_cell(reserved, true)
+			reserved.append(cell)
+			enemies.append(_make_enemy(enemy_type, cell))
+
+	for _i in range(int(level_def.get("potions", 0))):
+		var potion_cell := _find_empty_floor_cell(reserved, false)
+		reserved.append(potion_cell)
+		items.append(_make_item("potion", potion_cell))
+
+	for _i in range(int(level_def.get("coins", 0))):
+		var coin_cell := _find_empty_floor_cell(reserved, false)
+		reserved.append(coin_cell)
+		items.append(_make_item("coin", coin_cell))
+
+	for gear in level_def.get("gear", []):
+		var gear_cell := _find_empty_floor_cell(reserved, true)
+		reserved.append(gear_cell)
+		items.append(_make_item(str(gear), gear_cell))
+
+
+func _render_level() -> void:
+	_clear_layer(map_layer)
+	_clear_layer(decor_layer)
+	_clear_layer(item_layer)
+	_clear_layer(actor_layer)
+	_clear_layer(fx_layer)
+
+	for y in range(GRID_HEIGHT):
+		for x in range(GRID_WIDTH):
+			var cell := Vector2i(x, y)
+			if dungeon[y][x] == Tile.WALL:
+				var wall_key := "wall_dark" if (x + y + current_level_index) % 5 == 0 else "wall"
+				_make_tile_sprite(wall_key, cell, map_layer, 0)
+			else:
+				var floor_key := "floor_alt" if (x * 7 + y * 3 + current_level_index) % 9 == 0 else "floor"
+				if (x * 11 + y * 5) % 17 == 0:
+					floor_key = "floor_mark"
+				_make_tile_sprite(floor_key, cell, map_layer, 0)
+
+	_add_decor()
+	exit_node = _make_tile_sprite("door", exit_cell, actor_layer, 1)
+	exit_node.modulate = Color(0.42, 0.47, 0.49, 0.84)
+
+	for item in items:
+		item["node"] = _make_tile_sprite(str(item["texture"]), item["cell"], item_layer, 1)
+
+	player_node = Node2D.new()
+	player_node.position = _cell_to_world(player_cell)
+	actor_layer.add_child(player_node)
+	var player_sprite := Sprite2D.new()
+	player_sprite.texture = textures.get("player")
+	player_sprite.scale = Vector2.ONE * 2.0
+	player_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	player_node.add_child(player_sprite)
+
+	for enemy in enemies:
+		enemy["node"] = _make_enemy_node(enemy)
+
+	_refresh_exit()
+
+
+func _add_decor() -> void:
+	var decor_keys: Array[String] = ["rubble", "torch", "chest"]
+	var decor_count := 10 + current_level_index * 2
+	var reserved: Array[Vector2i] = [player_cell, exit_cell]
+	for enemy in enemies:
+		reserved.append(enemy["cell"])
+	for item in items:
+		reserved.append(item["cell"])
+
+	for _i in range(decor_count):
+		var cell := _find_empty_floor_cell(reserved, false)
+		if cell == Vector2i.ZERO:
+			continue
+		reserved.append(cell)
+		var key: String = decor_keys[rng.randi_range(0, decor_keys.size() - 1)]
+		var sprite := _make_tile_sprite(key, cell, decor_layer, 0)
+		sprite.modulate = Color(1, 1, 1, 0.48 if key != "torch" else 0.68)
+
+
+func _attempt_player_step(direction: Vector2i) -> void:
 	if GameState.current_state != GameState.Playing:
 		return
 
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed:
-			_try_begin_drag(event.position)
-		else:
-			_try_finish_drag()
-		get_viewport().set_input_as_handled()
+	var target := player_cell + direction
+	if not _is_inside(target) or _tile_at(target) == Tile.WALL:
+		_add_log("石墙挡住了去路。")
+		AudioManager.play_sound("blocked")
+		_bump_node(player_node, direction)
 		return
 
-	if event is InputEventMouseMotion and active_drag_item != null:
-		active_drag_item.drag_to(event.position)
-		get_viewport().set_input_as_handled()
+	var enemy: Variant = _enemy_at(target)
+	if enemy != null:
+		_attack_enemy(enemy)
+		if GameState.current_state == GameState.Playing:
+			_run_enemy_turns()
+		_refresh_hud()
+		return
+
+	player_cell = target
+	_tween_node_to_cell(player_node, player_cell, 0.08)
+	_collect_item_at(player_cell)
+
+	if player_cell == exit_cell and exit_open:
+		_complete_current_level()
+		return
+	elif player_cell == exit_cell and not exit_open:
+		_add_log("出口还没有回应。先清掉本层敌人。")
+
+	if GameState.current_state == GameState.Playing:
+		_run_enemy_turns()
+	_refresh_hud()
 
 
-func _try_begin_drag(mouse_position: Vector2) -> void:
-	for index in range(active_items.size() - 1, -1, -1):
-		var item := active_items[index]
-		if item.contains_point(mouse_position):
-			if item.current_target != null:
-				item.current_target.remove_item(item)
-				item.current_target = null
-			active_drag_item = item
-			active_drag_item.pick_up()
-			items_layer.move_child(item, items_layer.get_child_count() - 1)
-			AudioManager.play_sound("pickup")
+func _wait_turn() -> void:
+	if GameState.current_state != GameState.Playing:
+		return
+	_add_log("你屏住呼吸，听见远处有脚步声。")
+	_run_enemy_turns()
+	_refresh_hud()
+
+
+func _attack_enemy(enemy: Dictionary) -> void:
+	var damage := player_attack + rng.randi_range(0, 1)
+	enemy["hp"] = int(enemy["hp"]) - damage
+	AudioManager.play_sound("attack")
+	_add_log("你击中 " + str(enemy["name"]) + "，造成 " + str(damage) + " 点伤害。")
+	_flash_node(enemy.get("node"), Color(1.0, 0.62, 0.45, 1.0))
+
+	if int(enemy["hp"]) <= 0:
+		_kill_enemy(enemy)
+
+
+func _kill_enemy(enemy: Dictionary) -> void:
+	AudioManager.play_sound("enemy_down")
+	ParticleManager.play_enemy_die_effect(_cell_to_world(enemy["cell"]))
+	GameData.add_score(int(enemy["score"]))
+	_add_log(str(enemy["name"]) + " 倒下了。")
+
+	var node: Variant = enemy.get("node")
+	if node != null and is_instance_valid(node):
+		node.queue_free()
+
+	var dead_cell: Vector2i = enemy["cell"]
+	enemies.erase(enemy)
+	if rng.randf() < 0.24:
+		var drop_type := "potion" if rng.randf() < 0.36 else "coin"
+		var item := _make_item(drop_type, dead_cell)
+		items.append(item)
+		item["node"] = _make_tile_sprite(str(item["texture"]), dead_cell, item_layer, 1)
+
+	_refresh_exit()
+
+
+func _run_enemy_turns() -> void:
+	for enemy in enemies.duplicate():
+		if GameState.current_state != GameState.Playing:
 			return
+		if not enemies.has(enemy):
+			continue
+		var enemy_cell: Vector2i = enemy["cell"]
+		var distance := _manhattan(enemy_cell, player_cell)
+		if distance <= 1:
+			_enemy_attack_player(enemy)
+			continue
+
+		var next_cell := enemy_cell
+		if distance <= int(enemy["awareness"]):
+			next_cell = _best_enemy_step(enemy)
+		elif rng.randf() < 0.24:
+			var direction: Vector2i = DIRECTIONS[rng.randi_range(0, DIRECTIONS.size() - 1)]
+			var wander_cell := enemy_cell + direction
+			if _can_enemy_enter(wander_cell, enemy):
+				next_cell = wander_cell
+
+		if next_cell != enemy_cell:
+			enemy["cell"] = next_cell
+			_tween_node_to_cell(enemy.get("node"), next_cell, 0.12)
 
 
-func _try_finish_drag() -> void:
-	if active_drag_item == null:
+func _enemy_attack_player(enemy: Dictionary) -> void:
+	var damage := int(enemy["attack"])
+	player_hp = maxi(player_hp - damage, 0)
+	GameData.player_health = player_hp
+	GameData.health_changed.emit(player_hp)
+	AudioManager.play_sound("hurt")
+	ParticleManager.play_hurt_effect(_cell_to_world(player_cell))
+	_flash_node(player_node, Color(1.0, 0.36, 0.28, 1.0))
+	_add_log(str(enemy["name"]) + " 攻击你，造成 " + str(damage) + " 点伤害。")
+
+	if player_hp <= 0:
+		_game_over()
+
+
+func _collect_item_at(cell: Vector2i) -> void:
+	var item: Variant = _item_at(cell)
+	if item == null:
 		return
 
-	active_drag_item.drop()
-	var matched_target := _find_target_under_point(active_drag_item.global_position, active_drag_item)
+	match str(item["type"]):
+		"potion":
+			var before := player_hp
+			player_hp = mini(player_hp + 3, player_max_hp)
+			GameData.player_health = player_hp
+			GameData.health_changed.emit(player_hp)
+			_add_log("喝下药水，恢复 " + str(player_hp - before) + " 点生命。")
+			AudioManager.play_sound("potion")
+		"coin":
+			GameData.add_score(25)
+			_add_log("捡到一袋旧金币。")
+			AudioManager.play_sound("coin")
+		"sword":
+			player_attack += 1
+			GameData.add_score(45)
+			_add_log("你找到一柄短剑，攻击力 +1。")
+			AudioManager.play_sound("gear")
+		"shield":
+			player_max_hp += 2
+			player_hp = mini(player_hp + 2, player_max_hp)
+			GameData.player_health = player_hp
+			GameData.health_changed.emit(player_hp)
+			GameData.add_score(45)
+			_add_log("盾牌扣上手臂，最大生命 +2。")
+			AudioManager.play_sound("gear")
 
-	if matched_target != null:
-		var snap_position := matched_target.assign_item(active_drag_item)
-		active_drag_item.current_target = matched_target
-		active_drag_item.snap_to_position(snap_position)
-		AudioManager.play_sound("drop_success")
-		_on_item_correctly_placed(active_drag_item)
+	ParticleManager.play_collect_effect(_cell_to_world(cell))
+	var node: Variant = item.get("node")
+	if node != null and is_instance_valid(node):
+		node.queue_free()
+	items.erase(item)
+
+
+func _complete_current_level() -> void:
+	GameData.complete_level(current_level_index)
+	var is_last_level := current_level_index >= LEVEL_DEFS.size() - 1
+	if is_last_level:
+		run_outcome = RunOutcome.VICTORY
+		_save_high_score()
+		SaveManager.save_progress(0, GameData.completed_levels, GameData.hint_count, GameData.has_seen_tutorial)
+		_show_result("地牢清空", "你带着余烬和战利品回到井口。\n最终得分：" + str(GameData.score), "再来一局", "主菜单")
+		AudioManager.play_sound("victory")
 	else:
-		active_drag_item.reset_to_home()
-		AudioManager.play_sound("drop_reset")
-
-	active_drag_item = null
-	_emit_progress()
-	_check_level_completion()
-
-
-func _find_target_under_point(point: Vector2, item: DraggableItem) -> DropTarget:
-	for target in active_targets:
-		if target.contains_point(point) and target.can_accept(item):
-			return target
-	return null
+		run_outcome = RunOutcome.LEVEL_COMPLETE
+		GameData.set_current_level(current_level_index + 1)
+		SaveManager.save_progress(GameData.current_level_index, GameData.completed_levels, GameData.hint_count, GameData.has_seen_tutorial)
+		_show_result("楼层清理完毕", "出口的火光亮起。下一层会更危险。\n当前得分：" + str(GameData.score), "进入下一层", "主菜单")
+		AudioManager.play_sound("stairs")
 
 
-func _check_level_completion() -> void:
-	for item in active_items:
-		if not item.is_correctly_placed():
+func _game_over() -> void:
+	run_outcome = RunOutcome.GAME_OVER
+	_save_high_score()
+	_show_result("探险失败", "你倒在第 " + str(current_level_index + 1) + " 层。\n最终得分：" + str(GameData.score), "重新开始", "主菜单")
+	AudioManager.play_sound("death")
+
+
+func _show_result(title: String, body: String, primary_text: String, secondary_text: String) -> void:
+	GameState.set_state(GameState.Completed)
+	result_title_label.text = title
+	result_body_label.text = body
+	result_primary_button.text = primary_text
+	result_secondary_button.text = secondary_text
+	result_layer.visible = true
+	pause_layer.visible = false
+	menu_layer.visible = false
+	instructions_layer.visible = false
+	_set_hud_visible(true)
+
+
+func _on_result_primary_pressed() -> void:
+	match run_outcome:
+		RunOutcome.LEVEL_COMPLETE:
+			_load_level(GameData.current_level_index)
+		RunOutcome.VICTORY:
+			start_new_run()
+		RunOutcome.GAME_OVER:
+			start_new_run()
+		_:
+			show_menu()
+
+
+func _refresh_hud() -> void:
+	var level_def: Dictionary = LEVEL_DEFS[current_level_index]
+	title_label.text = str(level_def["title"])
+	goal_label.text = str(level_def["goal"])
+	depth_label.text = "深度 " + str(current_level_index + 1) + " / " + str(LEVEL_DEFS.size())
+	hp_label.text = "生命 " + str(player_hp) + " / " + str(player_max_hp)
+	attack_label.text = "攻击 " + str(player_attack) + " - " + str(player_attack + 1)
+	score_label.text = "得分 " + str(GameData.score)
+	enemies_label.text = "敌人 " + str(enemies.size())
+	status_label.text = "出口已开启。" if exit_open else "清理所有敌人后，出口会开启。"
+	log_label.text = "\n".join(log_lines)
+	_refresh_exit()
+
+
+func _refresh_exit() -> void:
+	exit_open = enemies.is_empty()
+	if exit_node != null and is_instance_valid(exit_node):
+		if exit_open:
+			exit_node.modulate = Color(1.0, 0.92, 0.45, 1.0)
+		else:
+			exit_node.modulate = Color(0.42, 0.47, 0.49, 0.84)
+
+
+func _add_log(message: String) -> void:
+	log_lines.push_front(message)
+	while log_lines.size() > 6:
+		log_lines.pop_back()
+	if log_label != null:
+		log_label.text = "\n".join(log_lines)
+
+
+func _direction_from_key(keycode: Key) -> Vector2i:
+	match keycode:
+		KEY_LEFT, KEY_A, KEY_H:
+			return Vector2i(-1, 0)
+		KEY_RIGHT, KEY_D, KEY_L:
+			return Vector2i(1, 0)
+		KEY_UP, KEY_W, KEY_K:
+			return Vector2i(0, -1)
+		KEY_DOWN, KEY_S, KEY_J:
+			return Vector2i(0, 1)
+		_:
+			return Vector2i.ZERO
+
+
+func _handle_escape() -> void:
+	match GameState.current_state:
+		GameState.Playing:
+			pause_game()
+		GameState.Paused:
+			resume_game()
+		GameState.Instructions:
+			hide_instructions()
+		GameState.Completed:
+			return
+		_:
 			return
 
-	var completed_index := current_loaded_level_index
-	GameData.complete_level(completed_index)
-	if completed_index < LEVELS.size() - 1:
-		GameData.set_current_level(completed_index + 1)
-	_save_progress(true)
-	GameState.complete_level(completed_index)
+
+func _make_enemy(enemy_type: String, cell: Vector2i) -> Dictionary:
+	var definition: Dictionary = ENEMY_TYPES.get(enemy_type, ENEMY_TYPES["slime"])
+	var hp := int(definition["hp"]) + maxi(0, current_level_index - 1)
+	return {
+		"type": enemy_type,
+		"name": definition["name"],
+		"hp": hp,
+		"max_hp": hp,
+		"attack": int(definition["attack"]),
+		"score": int(definition["score"]),
+		"texture": definition["texture"],
+		"awareness": int(definition["awareness"]),
+		"cell": cell,
+		"node": null,
+	}
 
 
-func _emit_progress() -> void:
-	var placed := 0
-	for item in active_items:
-		if item.is_correctly_placed():
-			placed += 1
-	placement_progress_changed.emit(placed, active_items.size())
+func _make_item(item_type: String, cell: Vector2i) -> Dictionary:
+	var texture_key := item_type
+	if item_type == "coin":
+		texture_key = "coin"
+	return {
+		"type": item_type,
+		"texture": texture_key,
+		"cell": cell,
+		"node": null,
+	}
 
 
-func _on_game_state_changed(new_state: int) -> void:
-	menu_layer.visible = new_state == GameState.Menu
-	instructions_layer.visible = new_state == GameState.Instructions
-	pause_layer.visible = new_state == GameState.Paused
-	hud.visible = (
-		new_state == GameState.Playing
-		or new_state == GameState.Paused
-		or new_state == GameState.Completed
-	)
+func _make_enemy_node(enemy: Dictionary) -> Node2D:
+	var node := Node2D.new()
+	node.position = _cell_to_world(enemy["cell"])
+	actor_layer.add_child(node)
 
-	if new_state != GameState.Completed:
-		completion_layer.visible = false
+	var sprite := Sprite2D.new()
+	sprite.texture = textures.get(str(enemy["texture"]))
+	sprite.scale = Vector2.ONE * 2.0
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	node.add_child(sprite)
 
-	tutorial_layer.visible = tutorial_active and new_state == GameState.Playing
+	return node
 
 
-func _on_game_state_level_completed(level_index: int) -> void:
-	var is_last_level := level_index >= LEVELS.size() - 1
-	completion_title.text = TEXT_COMPLETE_TITLE
-	completion_label.text = TEXT_LAST_LEVEL_DONE if is_last_level else TEXT_LEVEL_DONE
-	next_button.text = TEXT_RETURN_HOME if is_last_level else TEXT_NEXT_LEVEL
-	completion_layer.visible = true
-	_pulse_completion_panel()
-	AudioManager.play_sound("complete")
+func _make_tile_sprite(texture_key: String, cell: Vector2i, parent: Node, z: int) -> Sprite2D:
+	var sprite := Sprite2D.new()
+	sprite.texture = textures.get(texture_key)
+	sprite.position = _cell_to_world(cell)
+	sprite.scale = Vector2.ONE * 2.0
+	sprite.z_index = z
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	parent.add_child(sprite)
+	return sprite
 
 
-func _on_next_button_pressed() -> void:
-	completion_layer.visible = false
-	if current_loaded_level_index >= LEVELS.size() - 1:
-		show_menu()
-		return
-	load_level(GameData.current_level_index)
+func _room_overlaps(candidate: Rect2i) -> bool:
+	var grown_candidate := Rect2i(candidate.position - Vector2i.ONE, candidate.size + Vector2i(2, 2))
+	for room in rooms:
+		var grown_room := Rect2i(room.position - Vector2i.ONE, room.size + Vector2i(2, 2))
+		if grown_room.intersects(grown_candidate):
+			return true
+	return false
 
 
-func _on_item_pickup_started(_item: DraggableItem) -> void:
-	if tutorial_active and tutorial_step == 0:
-		tutorial_step = 1
-		_show_tutorial_message(TEXT_TUTORIAL_DRAG)
+func _carve_room(room: Rect2i) -> void:
+	for y in range(room.position.y, room.position.y + room.size.y):
+		for x in range(room.position.x, room.position.x + room.size.x):
+			_carve_cell(Vector2i(x, y))
 
 
-func _on_item_correctly_placed(_item: DraggableItem) -> void:
-	if tutorial_active and tutorial_step == 1 and not tutorial_sequence_running:
-		tutorial_sequence_running = true
-		_run_tutorial_success_sequence()
+func _carve_corridor(from_cell: Vector2i, to_cell: Vector2i) -> void:
+	if rng.randi() % 2 == 0:
+		_carve_horizontal(from_cell.x, to_cell.x, from_cell.y)
+		_carve_vertical(from_cell.y, to_cell.y, to_cell.x)
+	else:
+		_carve_vertical(from_cell.y, to_cell.y, from_cell.x)
+		_carve_horizontal(from_cell.x, to_cell.x, to_cell.y)
 
 
-func _run_tutorial_success_sequence() -> void:
-	tutorial_step = 2
-	_show_tutorial_message(TEXT_TUTORIAL_SNAP)
-	await get_tree().create_timer(1.5).timeout
-	if not tutorial_active or current_loaded_level_index != 0:
-		tutorial_sequence_running = false
-		return
-	tutorial_step = 3
-	_show_tutorial_message(TEXT_TUTORIAL_FINISH)
-	await get_tree().create_timer(2.3).timeout
-	if not tutorial_active or current_loaded_level_index != 0:
-		tutorial_sequence_running = false
-		return
-	GameData.mark_tutorial_seen()
-	_save_progress(true)
-	_hide_tutorial()
+func _carve_horizontal(x1: int, x2: int, y: int) -> void:
+	for x in range(mini(x1, x2), maxi(x1, x2) + 1):
+		_carve_cell(Vector2i(x, y))
 
 
-func _build_level(level_data: Dictionary, level_index: int) -> void:
-	background.color = level_data.get("background_color", Color.WHITE)
-	desk_surface.color = level_data.get("desk_color", Color(0.8, 0.7, 0.6, 1.0))
-	backdrop_glow.color = Color(level_data.get("background_color", Color.WHITE)).lightened(0.08)
-	_build_level_decor(level_index, level_data)
-
-	for target_data in level_data.get("targets", []):
-		var target: DropTarget = TARGET_SCENE.instantiate()
-		targets_layer.add_child(target)
-		target.configure(target_data)
-		active_targets.append(target)
-
-	for item_data in level_data.get("items", []):
-		var item: DraggableItem = ITEM_SCENE.instantiate()
-		items_layer.add_child(item)
-		item.configure(item_data)
-		item.pickup_started.connect(_on_item_pickup_started)
-		active_items.append(item)
+func _carve_vertical(y1: int, y2: int, x: int) -> void:
+	for y in range(mini(y1, y2), maxi(y1, y2) + 1):
+		_carve_cell(Vector2i(x, y))
 
 
-func _clear_level_nodes() -> void:
-	for decor in decor_layer.get_children():
-		decor.queue_free()
-
-	for target in active_targets:
-		target.queue_free()
-	active_targets.clear()
-
-	for item in active_items:
-		item.queue_free()
-	active_items.clear()
-
-	active_drag_item = null
+func _carve_cell(cell: Vector2i) -> void:
+	if _is_inside(cell):
+		dungeon[cell.y][cell.x] = Tile.FLOOR
 
 
-func _find_target_by_id(target_id: String) -> DropTarget:
-	for target in active_targets:
-		if target.target_id == target_id:
-			return target
+func _room_center(room: Rect2i) -> Vector2i:
+	return room.position + Vector2i(room.size.x / 2, room.size.y / 2)
+
+
+func _find_empty_floor_cell(reserved: Array[Vector2i], avoid_first_room: bool) -> Vector2i:
+	if rooms.is_empty():
+		return Vector2i.ZERO
+
+	var first_room_index := 1 if avoid_first_room and rooms.size() > 1 else 0
+	for _attempt in range(240):
+		var room_index := rng.randi_range(first_room_index, rooms.size() - 1)
+		var room := rooms[room_index]
+		var cell := Vector2i(
+			rng.randi_range(room.position.x, room.position.x + room.size.x - 1),
+			rng.randi_range(room.position.y, room.position.y + room.size.y - 1)
+		)
+		if _tile_at(cell) == Tile.FLOOR and not reserved.has(cell):
+			return cell
+
+	for y in range(GRID_HEIGHT):
+		for x in range(GRID_WIDTH):
+			var fallback := Vector2i(x, y)
+			if _tile_at(fallback) == Tile.FLOOR and not reserved.has(fallback):
+				return fallback
+
+	return Vector2i.ZERO
+
+
+func _best_enemy_step(enemy: Dictionary) -> Vector2i:
+	var enemy_cell: Vector2i = enemy["cell"]
+	var best_distance := 999
+	var best_cells: Array[Vector2i] = []
+	for raw_direction in DIRECTIONS:
+		var direction: Vector2i = raw_direction
+		var candidate: Vector2i = enemy_cell + direction
+		if not _can_enemy_enter(candidate, enemy):
+			continue
+		var distance := _manhattan(candidate, player_cell)
+		if distance < best_distance:
+			best_distance = distance
+			best_cells = [candidate]
+		elif distance == best_distance:
+			best_cells.append(candidate)
+
+	if best_cells.is_empty():
+		return enemy_cell
+	return best_cells[rng.randi_range(0, best_cells.size() - 1)]
+
+
+func _can_enemy_enter(cell: Vector2i, moving_enemy: Dictionary) -> bool:
+	if not _is_inside(cell):
+		return false
+	if _tile_at(cell) == Tile.WALL:
+		return false
+	if cell == player_cell:
+		return false
+	for enemy in enemies:
+		if enemy == moving_enemy:
+			continue
+		if enemy["cell"] == cell:
+			return false
+	return true
+
+
+func _enemy_at(cell: Vector2i) -> Variant:
+	for enemy in enemies:
+		if enemy["cell"] == cell:
+			return enemy
 	return null
 
 
-func _save_progress(force: bool = false) -> void:
-	if not force and not save_available_before_session and current_level_data.is_empty():
+func _item_at(cell: Vector2i) -> Variant:
+	for item in items:
+		if item["cell"] == cell:
+			return item
+	return null
+
+
+func _tile_at(cell: Vector2i) -> int:
+	if not _is_inside(cell):
+		return Tile.WALL
+	return int(dungeon[cell.y][cell.x])
+
+
+func _is_inside(cell: Vector2i) -> bool:
+	return cell.x >= 0 and cell.x < GRID_WIDTH and cell.y >= 0 and cell.y < GRID_HEIGHT
+
+
+func _manhattan(a: Vector2i, b: Vector2i) -> int:
+	return absi(a.x - b.x) + absi(a.y - b.y)
+
+
+func _cell_to_world(cell: Vector2i) -> Vector2:
+	return MAP_ORIGIN + Vector2(cell.x * TILE_SIZE, cell.y * TILE_SIZE) + Vector2(TILE_SIZE / 2, TILE_SIZE / 2)
+
+
+func _tween_node_to_cell(node: Variant, cell: Vector2i, duration: float) -> void:
+	if node == null or not is_instance_valid(node):
 		return
-	SaveManager.save_progress(
-		GameData.current_level_index,
-		GameData.completed_levels,
-		GameData.hint_count,
-		GameData.has_seen_tutorial
-	)
-	save_available_before_session = true
-	_refresh_continue_button()
+	var tween := create_tween()
+	tween.tween_property(node, "position", _cell_to_world(cell), duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+
+func _bump_node(node: Variant, direction: Vector2i) -> void:
+	if node == null or not is_instance_valid(node):
+		return
+	var start_position: Vector2 = node.position
+	var bump_position := start_position + Vector2(direction.x, direction.y) * 6.0
+	var tween := create_tween()
+	tween.tween_property(node, "position", bump_position, 0.04)
+	tween.tween_property(node, "position", start_position, 0.06)
+
+
+func _flash_node(node: Variant, color: Color) -> void:
+	if node == null or not is_instance_valid(node):
+		return
+	var tween := create_tween()
+	tween.tween_property(node, "modulate", color, 0.04)
+	tween.tween_property(node, "modulate", Color.WHITE, 0.12)
+
+
+func _clear_layer(layer: Node) -> void:
+	for child in layer.get_children():
+		child.queue_free()
+
+
+func _set_hud_visible(is_visible: bool) -> void:
+	ui_layer.visible = is_visible
 
 
 func _refresh_continue_button() -> void:
+	if continue_button == null:
+		return
 	continue_button.disabled = not SaveManager.has_save_data()
 
 
-func _maybe_start_tutorial(level_index: int) -> void:
-	tutorial_sequence_running = false
-	if level_index == 0 and not GameData.has_seen_tutorial:
-		tutorial_active = true
-		tutorial_step = 0
-		_show_tutorial_message(TEXT_TUTORIAL_START)
-	else:
-		_hide_tutorial()
+func _save_high_score() -> void:
+	var high_score := SaveManager.get_high_score()
+	if GameData.score > high_score:
+		SaveManager.save_high_score(GameData.score)
 
 
-func _show_tutorial_message(message: String) -> void:
-	tutorial_label.text = message
-	tutorial_layer.visible = GameState.current_state == GameState.Playing
-
-
-func _hide_tutorial() -> void:
-	tutorial_active = false
-	tutorial_step = -1
-	tutorial_sequence_running = false
-	tutorial_layer.visible = false
-
-
-func _connect_buttons() -> void:
-	next_button.pressed.connect(_on_next_button_pressed)
-	start_button.pressed.connect(start_new_game)
-	continue_button.pressed.connect(continue_game)
-	instructions_button.pressed.connect(show_instructions)
-	quit_button.pressed.connect(_on_quit_button_pressed)
-	instructions_back_button.pressed.connect(hide_instructions)
-	pause_resume_button.pressed.connect(resume_game)
-	pause_reset_button.pressed.connect(_on_pause_reset_pressed)
-	pause_home_button.pressed.connect(show_menu)
-
-	for button in [
-		next_button,
-		start_button,
-		continue_button,
-		instructions_button,
-		quit_button,
-		instructions_back_button,
-		pause_resume_button,
-		pause_reset_button,
-		pause_home_button,
-	]:
-		button.pressed.connect(_play_button_feedback)
-
-
-func _on_pause_reset_pressed() -> void:
-	load_level(current_loaded_level_index)
-
-
-func _on_quit_button_pressed() -> void:
+func _quit_game() -> void:
 	get_tree().quit()
 
 
-func _play_button_feedback() -> void:
+func _add_overlay_shade(layer: CanvasLayer, color: Color) -> void:
+	var shade := ColorRect.new()
+	shade.size = WINDOW_SIZE
+	shade.color = color
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(shade)
+
+
+func _make_center_panel(layer: CanvasLayer, size: Vector2) -> Panel:
+	var panel := Panel.new()
+	panel.position = (WINDOW_SIZE - size) * 0.5
+	panel.size = size
+	panel.add_theme_stylebox_override("panel", _panel_style(Color(0.105, 0.125, 0.115, 0.98), Color(0.48, 0.58, 0.38, 0.95)))
+	layer.add_child(panel)
+	return panel
+
+
+func _make_label(
+	parent: Node,
+	position_value: Vector2,
+	size_value: Vector2,
+	text_value: String,
+	font_size: int,
+	color_value: Color,
+	align: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT,
+	valign: VerticalAlignment = VERTICAL_ALIGNMENT_TOP
+) -> Label:
+	var label := Label.new()
+	label.position = position_value
+	label.size = size_value
+	label.text = text_value
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.horizontal_alignment = align
+	label.vertical_alignment = valign
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", color_value)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(label)
+	return label
+
+
+func _make_button(parent: Node, position_value: Vector2, size_value: Vector2, text_value: String) -> Button:
+	var button := Button.new()
+	button.position = position_value
+	button.size = size_value
+	button.text = text_value
+	button.focus_mode = Control.FOCUS_ALL
+	button.add_theme_stylebox_override("normal", _button_style(Color(0.36, 0.48, 0.32, 1.0)))
+	button.add_theme_stylebox_override("hover", _button_style(Color(0.47, 0.62, 0.38, 1.0)))
+	button.add_theme_stylebox_override("pressed", _button_style(Color(0.64, 0.49, 0.28, 1.0)))
+	button.add_theme_stylebox_override("disabled", _button_style(Color(0.22, 0.27, 0.24, 1.0)))
+	button.add_theme_color_override("font_color", Color(0.96, 0.94, 0.78, 1.0))
+	button.add_theme_color_override("font_disabled_color", Color(0.54, 0.58, 0.52, 1.0))
+	button.add_theme_font_size_override("font_size", 17)
+	button.pressed.connect(_play_button_sound)
+	parent.add_child(button)
+	return button
+
+
+func _panel_style(bg_color: Color, border_color: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg_color
+	style.border_width_left = 2
+	style.border_width_right = 2
+	style.border_width_top = 2
+	style.border_width_bottom = 2
+	style.border_color = border_color
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	style.shadow_color = Color(0, 0, 0, 0.28)
+	style.shadow_size = 8
+	return style
+
+
+func _button_style(bg_color: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg_color
+	style.border_width_left = 2
+	style.border_width_right = 2
+	style.border_width_top = 2
+	style.border_width_bottom = 2
+	style.border_color = Color(0.84, 0.72, 0.42, 0.45)
+	style.corner_radius_top_left = 6
+	style.corner_radius_top_right = 6
+	style.corner_radius_bottom_left = 6
+	style.corner_radius_bottom_right = 6
+	return style
+
+
+func _play_button_sound() -> void:
 	AudioManager.play_sound("button")
-
-
-func _set_static_copy() -> void:
-	menu_title.text = TEXT_MAIN_TITLE
-	menu_subtitle.text = TEXT_MAIN_SUBTITLE
-	start_button.text = TEXT_START
-	continue_button.text = TEXT_CONTINUE
-	instructions_button.text = TEXT_INSTRUCTIONS
-	quit_button.text = TEXT_QUIT
-
-	instructions_title.text = TEXT_INSTRUCTIONS
-	instructions_body.text = TEXT_INSTRUCTION_BODY
-	instructions_back_button.text = TEXT_BACK
-
-	pause_title.text = TEXT_PAUSE_TITLE
-	pause_resume_button.text = TEXT_CONTINUE
-	pause_reset_button.text = TEXT_RESET_LEVEL
-	pause_home_button.text = TEXT_RETURN_HOME
-	completion_title.text = TEXT_COMPLETE_TITLE
-	completion_label.text = TEXT_COMPLETE_SPARKLE
-
-
-func _style_overlay_panels() -> void:
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.985, 0.965, 0.93, 0.95)
-	panel_style.corner_radius_top_left = 28
-	panel_style.corner_radius_top_right = 28
-	panel_style.corner_radius_bottom_right = 28
-	panel_style.corner_radius_bottom_left = 28
-	panel_style.border_width_left = 2
-	panel_style.border_width_top = 2
-	panel_style.border_width_right = 2
-	panel_style.border_width_bottom = 2
-	panel_style.border_color = Color(0.58, 0.48, 0.38, 0.26)
-	panel_style.shadow_color = Color(0.23, 0.19, 0.14, 0.12)
-	panel_style.shadow_size = 10
-
-	for panel in [
-		completion_panel,
-		$MenuLayer/MenuPanel,
-		$InstructionsLayer/InstructionsPanel,
-		$PauseLayer/PausePanel,
-		tutorial_panel,
-	]:
-		panel.add_theme_stylebox_override("panel", panel_style)
-
-	var button_style := StyleBoxFlat.new()
-	button_style.bg_color = Color(0.79, 0.66, 0.52, 1.0)
-	button_style.corner_radius_top_left = 18
-	button_style.corner_radius_top_right = 18
-	button_style.corner_radius_bottom_right = 18
-	button_style.corner_radius_bottom_left = 18
-	button_style.border_width_left = 2
-	button_style.border_width_top = 2
-	button_style.border_width_right = 2
-	button_style.border_width_bottom = 2
-	button_style.border_color = Color(0.43, 0.33, 0.25, 0.22)
-
-	var button_hover := button_style.duplicate()
-	button_hover.bg_color = Color(0.88, 0.76, 0.61, 1.0)
-
-	for button in [
-		next_button,
-		start_button,
-		continue_button,
-		instructions_button,
-		quit_button,
-		instructions_back_button,
-		pause_resume_button,
-		pause_reset_button,
-		pause_home_button,
-	]:
-		button.add_theme_stylebox_override("normal", button_style)
-		button.add_theme_stylebox_override("hover", button_hover)
-		button.add_theme_stylebox_override("pressed", button_hover)
-		button.add_theme_color_override("font_color", Color(0.25, 0.18, 0.13, 1.0))
-
-	var button_disabled := button_style.duplicate()
-	button_disabled.bg_color = Color(0.79, 0.75, 0.71, 1.0)
-	continue_button.add_theme_stylebox_override("disabled", button_disabled)
-
-	completion_title.add_theme_color_override("font_color", Color(0.31, 0.21, 0.15, 1.0))
-	completion_label.add_theme_color_override("font_color", Color(0.36, 0.26, 0.19, 0.92))
-
-	tutorial_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tutorial_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-
-func _configure_overlay_input() -> void:
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	backdrop_glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	desk_surface.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	$MenuLayer/Shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	$InstructionsLayer/Shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	$PauseLayer/Shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-	$HUD/TopBar.mouse_filter = Control.MOUSE_FILTER_PASS
-	$HUD/BottomBar.mouse_filter = Control.MOUSE_FILTER_PASS
-	completion_shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	completion_panel.mouse_filter = Control.MOUSE_FILTER_PASS
-	$MenuLayer/MenuPanel.mouse_filter = Control.MOUSE_FILTER_PASS
-	$InstructionsLayer/InstructionsPanel.mouse_filter = Control.MOUSE_FILTER_PASS
-	$PauseLayer/PausePanel.mouse_filter = Control.MOUSE_FILTER_PASS
-
-	for control in [
-		completion_label,
-		menu_title,
-		menu_subtitle,
-		instructions_title,
-		instructions_body,
-		pause_title,
-		$HUD/TopBar/TitleLabel,
-		$HUD/TopBar/GoalLabel,
-		$HUD/TopBar/ProgressLabel,
-		$HUD/TopBar/LevelLabel,
-		$HUD/TopBar/HintLabel,
-		$HUD/BottomBar/StatusLabel,
-		tutorial_label,
-	]:
-		control.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-
-func _pulse_completion_panel() -> void:
-	completion_panel.scale = Vector2(0.94, 0.94)
-	completion_panel.modulate = Color(1, 1, 1, 0.0)
-	completion_shade.modulate = Color(1, 1, 1, 0.0)
-	var tween := create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(completion_panel, "scale", Vector2.ONE, 0.24).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_property(completion_panel, "modulate", Color(1, 1, 1, 1), 0.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	tween.tween_property(completion_shade, "modulate", Color(1, 1, 1, 1), 0.18).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-
-
-func _build_level_decor(level_index: int, level_data: Dictionary) -> void:
-	var paper_color: Color = Color(level_data.get("background_color", Color.WHITE)).lightened(0.03)
-	var accent_color: Color = Color(level_data.get("desk_color", Color(0.8, 0.7, 0.6, 1.0))).darkened(0.12)
-	var warm_shadow: Color = Color(0.3, 0.22, 0.15, 0.08)
-
-	_add_rect(decor_layer, Vector2(118, 188), Vector2(1044, 24), warm_shadow)
-	_add_rect(decor_layer, Vector2(126, 176), Vector2(1028, 20), accent_color.darkened(0.1))
-	_add_rect(decor_layer, Vector2(150, 220), Vector2(980, 280), paper_color)
-
-	match level_index:
-		0:
-			_build_shelf_decor()
-		1:
-			_build_library_decor()
-		2:
-			_build_sorting_decor()
-		3:
-			_build_tea_decor()
-		4:
-			_build_art_desk_decor()
-		5:
-			_build_mail_decor()
-		6:
-			_build_nightstand_decor()
-		7:
-			_build_kitchen_drawer_decor()
-		8:
-			_build_travel_decor()
-		9:
-			_build_keepsake_decor()
-		_:
-			_build_generic_decor()
-
-
-func _build_shelf_decor() -> void:
-	_add_rect(decor_layer, Vector2(188, 138), Vector2(900, 18), Color(0.74, 0.64, 0.52, 0.95))
-	_add_rect(decor_layer, Vector2(232, 98), Vector2(88, 32), Color(0.94, 0.86, 0.74, 1.0))
-	_add_rect(decor_layer, Vector2(344, 84), Vector2(46, 46), Color(0.87, 0.76, 0.60, 1.0))
-	_add_rect(decor_layer, Vector2(948, 86), Vector2(110, 44), Color(0.96, 0.91, 0.84, 1.0))
-	_add_rect(decor_layer, Vector2(930, 260), Vector2(180, 118), Color(1.0, 0.97, 0.91, 0.52))
-	_add_plant(decor_layer, Vector2(1030, 128), Color(0.52, 0.69, 0.45, 1.0), Color(0.87, 0.74, 0.56, 1.0))
-	_add_cloth(decor_layer, Vector2(176, 470), Vector2(250, 122), Color(0.86, 0.77, 0.68, 0.4))
-
-
-func _build_library_decor() -> void:
-	_add_rect(decor_layer, Vector2(206, 88), Vector2(856, 212), Color(0.98, 0.96, 0.92, 0.45))
-	_add_rect(decor_layer, Vector2(280, 118), Vector2(88, 146), Color(0.73, 0.79, 0.62, 0.75))
-	_add_rect(decor_layer, Vector2(384, 106), Vector2(54, 158), Color(0.88, 0.72, 0.59, 0.78))
-	_add_rect(decor_layer, Vector2(456, 136), Vector2(70, 128), Color(0.66, 0.75, 0.9, 0.8))
-	_add_rect(decor_layer, Vector2(770, 304), Vector2(72, 190), Color(0.69, 0.65, 0.78, 0.22))
-	_add_rect(decor_layer, Vector2(436, 514), Vector2(470, 76), Color(0.95, 0.91, 0.84, 0.56))
-	_add_cloth(decor_layer, Vector2(294, 484), Vector2(590, 130), Color(0.83, 0.76, 0.90, 0.28))
-
-
-func _build_sorting_decor() -> void:
-	_add_rect(decor_layer, Vector2(186, 90), Vector2(884, 170), Color(1.0, 0.99, 0.95, 0.42))
-	_add_rect(decor_layer, Vector2(196, 490), Vector2(886, 104), Color(0.93, 0.90, 0.82, 0.42))
-	_add_cloth(decor_layer, Vector2(160, 474), Vector2(394, 128), Color(0.89, 0.8, 0.72, 0.3))
-	_add_cloth(decor_layer, Vector2(740, 474), Vector2(380, 128), Color(0.76, 0.86, 0.89, 0.28))
-	_add_plant(decor_layer, Vector2(228, 144), Color(0.51, 0.69, 0.54, 1.0), Color(0.92, 0.84, 0.72, 1.0))
-	_add_jar(decor_layer, Vector2(986, 146), Color(0.96, 0.94, 0.87, 1.0), Color(0.84, 0.72, 0.58, 1.0))
-
-
-func _build_tea_decor() -> void:
-	_add_rect(decor_layer, Vector2(200, 106), Vector2(870, 116), Color(1.0, 0.96, 0.88, 0.40))
-	_add_cloth(decor_layer, Vector2(276, 474), Vector2(728, 116), Color(0.92, 0.82, 0.74, 0.32))
-	_add_rect(decor_layer, Vector2(466, 270), Vector2(350, 26), Color(0.70, 0.52, 0.38, 0.36))
-	_add_jar(decor_layer, Vector2(1018, 132), Color(0.96, 0.90, 0.78, 1.0), Color(0.78, 0.58, 0.42, 1.0))
-	_add_plant(decor_layer, Vector2(236, 142), Color(0.55, 0.70, 0.45, 1.0), Color(0.86, 0.70, 0.58, 1.0))
-
-
-func _build_art_desk_decor() -> void:
-	_add_rect(decor_layer, Vector2(174, 96), Vector2(930, 150), Color(1.0, 0.98, 0.92, 0.38))
-	_add_rect(decor_layer, Vector2(212, 124), Vector2(130, 92), Color(0.76, 0.84, 0.92, 0.34))
-	_add_rect(decor_layer, Vector2(360, 118), Vector2(98, 108), Color(0.94, 0.76, 0.70, 0.32))
-	_add_rect(decor_layer, Vector2(836, 104), Vector2(260, 132), Color(0.78, 0.86, 0.72, 0.28))
-	_add_cloth(decor_layer, Vector2(190, 482), Vector2(900, 108), Color(0.82, 0.82, 0.74, 0.28))
-
-
-func _build_mail_decor() -> void:
-	_add_rect(decor_layer, Vector2(190, 102), Vector2(890, 134), Color(0.98, 0.94, 0.86, 0.42))
-	_add_rect(decor_layer, Vector2(234, 124), Vector2(122, 82), Color(0.92, 0.84, 0.70, 0.50))
-	_add_rect(decor_layer, Vector2(374, 116), Vector2(148, 94), Color(0.78, 0.88, 0.92, 0.36))
-	_add_rect(decor_layer, Vector2(868, 118), Vector2(164, 96), Color(0.84, 0.80, 0.72, 0.38))
-	_add_cloth(decor_layer, Vector2(224, 484), Vector2(838, 112), Color(0.88, 0.78, 0.66, 0.24))
-
-
-func _build_nightstand_decor() -> void:
-	_add_rect(decor_layer, Vector2(180, 94), Vector2(920, 160), Color(0.78, 0.80, 0.88, 0.40))
-	_add_rect(decor_layer, Vector2(246, 118), Vector2(152, 84), Color(0.95, 0.88, 0.62, 0.28))
-	_add_rect(decor_layer, Vector2(430, 112), Vector2(312, 110), Color(0.68, 0.70, 0.82, 0.22))
-	_add_rect(decor_layer, Vector2(816, 118), Vector2(204, 94), Color(0.66, 0.68, 0.78, 0.28))
-	_add_cloth(decor_layer, Vector2(238, 482), Vector2(790, 118), Color(0.66, 0.64, 0.74, 0.28))
-
-
-func _build_kitchen_drawer_decor() -> void:
-	_add_rect(decor_layer, Vector2(192, 96), Vector2(888, 152), Color(0.98, 0.95, 0.86, 0.40))
-	_add_rect(decor_layer, Vector2(258, 118), Vector2(188, 98), Color(0.82, 0.72, 0.58, 0.32))
-	_add_rect(decor_layer, Vector2(486, 118), Vector2(130, 98), Color(0.92, 0.86, 0.72, 0.26))
-	_add_rect(decor_layer, Vector2(808, 118), Vector2(220, 98), Color(0.84, 0.80, 0.64, 0.30))
-	_add_cloth(decor_layer, Vector2(190, 482), Vector2(900, 112), Color(0.82, 0.74, 0.62, 0.26))
-
-
-func _build_travel_decor() -> void:
-	_add_rect(decor_layer, Vector2(190, 96), Vector2(890, 154), Color(0.94, 0.97, 0.96, 0.38))
-	_add_rect(decor_layer, Vector2(244, 120), Vector2(180, 92), Color(0.70, 0.78, 0.76, 0.30))
-	_add_rect(decor_layer, Vector2(548, 118), Vector2(180, 96), Color(0.78, 0.74, 0.86, 0.30))
-	_add_rect(decor_layer, Vector2(858, 118), Vector2(178, 96), Color(0.72, 0.84, 0.88, 0.30))
-	_add_cloth(decor_layer, Vector2(208, 484), Vector2(860, 110), Color(0.72, 0.80, 0.78, 0.28))
-
-
-func _build_keepsake_decor() -> void:
-	_add_rect(decor_layer, Vector2(188, 96), Vector2(890, 158), Color(1.0, 0.96, 0.88, 0.40))
-	_add_rect(decor_layer, Vector2(244, 116), Vector2(806, 118), Color(0.78, 0.67, 0.54, 0.24))
-	_add_rect(decor_layer, Vector2(258, 128), Vector2(118, 78), Color(0.96, 0.93, 0.84, 0.36))
-	_add_rect(decor_layer, Vector2(864, 126), Vector2(132, 82), Color(0.76, 0.86, 0.70, 0.30))
-	_add_cloth(decor_layer, Vector2(220, 484), Vector2(834, 110), Color(0.88, 0.78, 0.68, 0.26))
-
-
-func _build_generic_decor() -> void:
-	_add_rect(decor_layer, Vector2(182, 104), Vector2(884, 160), Color(1.0, 0.99, 0.95, 0.3))
-
-
-func _add_rect(parent: Node, position_value: Vector2, size_value: Vector2, color_value: Color) -> ColorRect:
-	var rect := ColorRect.new()
-	rect.position = position_value
-	rect.size = size_value
-	rect.color = color_value
-	parent.add_child(rect)
-	return rect
-
-
-func _add_polygon(parent: Node, position_value: Vector2, points: PackedVector2Array, color_value: Color) -> Polygon2D:
-	var polygon := Polygon2D.new()
-	polygon.position = position_value
-	polygon.polygon = points
-	polygon.color = color_value
-	parent.add_child(polygon)
-	return polygon
-
-
-func _add_cloth(parent: Node, position_value: Vector2, size_value: Vector2, color_value: Color) -> void:
-	_add_polygon(
-		parent,
-		position_value,
-		PackedVector2Array([
-			Vector2(0, 8),
-			Vector2(size_value.x * 0.16, 0),
-			Vector2(size_value.x * 0.42, 16),
-			Vector2(size_value.x * 0.67, 4),
-			Vector2(size_value.x, 18),
-			Vector2(size_value.x * 0.92, size_value.y),
-			Vector2(size_value.x * 0.18, size_value.y * 0.92),
-			Vector2(0, size_value.y * 0.7),
-		]),
-		color_value
-	)
-
-
-func _add_plant(parent: Node, position_value: Vector2, leaf_color: Color, pot_color: Color) -> void:
-	_add_rect(parent, position_value + Vector2(-24, 30), Vector2(48, 28), pot_color)
-	_add_polygon(parent, position_value + Vector2(-6, 26), PackedVector2Array([
-		Vector2(0, 0), Vector2(30, -48), Vector2(18, -6)
-	]), leaf_color)
-	_add_polygon(parent, position_value + Vector2(10, 24), PackedVector2Array([
-		Vector2(0, 0), Vector2(36, -34), Vector2(24, 4)
-	]), leaf_color.darkened(0.08))
-	_add_polygon(parent, position_value + Vector2(-18, 22), PackedVector2Array([
-		Vector2(0, 0), Vector2(-34, -42), Vector2(-20, 2)
-	]), leaf_color.lightened(0.05))
-
-
-func _add_jar(parent: Node, position_value: Vector2, glass_color: Color, lid_color: Color) -> void:
-	_add_rect(parent, position_value + Vector2(-28, 8), Vector2(56, 64), glass_color)
-	_add_rect(parent, position_value + Vector2(-20, 0), Vector2(40, 12), lid_color)
-	_add_rect(parent, position_value + Vector2(-14, 20), Vector2(28, 32), glass_color.darkened(0.05))

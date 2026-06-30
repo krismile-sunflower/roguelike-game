@@ -15,14 +15,31 @@ This folder tracks every third-party or downloaded asset used by the game.
 
 - Kenney assets: https://kenney.nl/assets
 - Kenney license/support: https://kenney.nl/support
-- Kenney Furniture Kit: https://kenney.nl/assets/furniture-kit
+- Kenney Tiny Dungeon: https://kenney.nl/assets/tiny-dungeon
+- Kenney 1-Bit Pack: https://kenney.nl/assets/1-bit-pack
 - Kenney All-in-1: https://kenney.itch.io/kenney-game-assets
-- itch.io free cozy 2D assets: https://itch.io/game-assets/free/tag-2d/tag-cozy
+- itch.io free roguelike assets: https://itch.io/game-assets/free/tag-roguelike
 - OpenGameArt CC0 resources: https://opengameart.org/content/cc0-resources
 
 Only import files after confirming their license on the source page.
 
 ## Imported Assets
+
+- Asset pack: Kenney Tiny Dungeon
+- Source URL: https://kenney.nl/assets/tiny-dungeon
+- Download URL: https://kenney.nl/media/pages/assets/tiny-dungeon/f8422efb44-1674742415/kenney_tiny-dungeon.zip
+- Author: Kenney
+- License: Creative Commons Zero (CC0)
+- License file: `assets/art/kenney_tiny-dungeon/License.txt`
+- Files imported: `assets/art/kenney_tiny-dungeon/**`
+- Files currently referenced by code:
+  - `Tiles/tile_0048.png`, `tile_0049.png`, `tile_0042.png` as floor variants
+  - `Tiles/tile_0014.png`, `tile_0040.png` as wall variants
+  - `Tiles/tile_0045.png` as the level exit
+  - `Tiles/tile_0085.png` as the player
+  - `Tiles/tile_0096.png`, `tile_0110.png`, `tile_0112.png`, `tile_0120.png`, `tile_0122.png`, `tile_0123.png` as enemies
+  - `Tiles/tile_0102.png`, `tile_0103.png`, `tile_0113.png`, `tile_0114.png` as pickups and gear
+  - `Tiles/tile_0029.png`, `tile_0053.png`, `tile_0079.png` as dungeon decor
 
 - Asset pack: Kenney Interface Sounds (1.0)
 - Source URL: https://kenney.nl/assets/interface-sounds

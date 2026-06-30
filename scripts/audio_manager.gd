@@ -7,6 +7,16 @@ const SOUND_PATHS := {
 	"complete": "res://assets/audio/kenney_interface-sounds/Audio/confirmation_001.ogg",
 	"hint": "res://assets/audio/kenney_interface-sounds/Audio/click_005.ogg",
 	"button": "res://assets/audio/kenney_interface-sounds/Audio/click_002.ogg",
+	"attack": "res://assets/audio/kenney_interface-sounds/Audio/scratch_002.ogg",
+	"blocked": "res://assets/audio/kenney_interface-sounds/Audio/error_002.ogg",
+	"coin": "res://assets/audio/kenney_interface-sounds/Audio/confirmation_002.ogg",
+	"death": "res://assets/audio/kenney_interface-sounds/Audio/error_008.ogg",
+	"enemy_down": "res://assets/audio/kenney_interface-sounds/Audio/drop_004.ogg",
+	"gear": "res://assets/audio/kenney_interface-sounds/Audio/open_004.ogg",
+	"hurt": "res://assets/audio/kenney_interface-sounds/Audio/error_005.ogg",
+	"potion": "res://assets/audio/kenney_interface-sounds/Audio/glass_002.ogg",
+	"stairs": "res://assets/audio/kenney_interface-sounds/Audio/open_003.ogg",
+	"victory": "res://assets/audio/kenney_interface-sounds/Audio/confirmation_004.ogg",
 }
 
 var sfx_enabled: bool = true
