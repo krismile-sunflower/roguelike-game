@@ -120,7 +120,11 @@ func _get_sound_stream(sound_key: String) -> AudioStream:
 	if not SOUND_PATHS.has(sound_key):
 		return null
 
-	var stream := load(SOUND_PATHS[sound_key])
+	var path := str(SOUND_PATHS[sound_key])
+	if not ResourceLoader.exists(path):
+		return null
+
+	var stream := load(path)
 	if stream is AudioStream:
 		_sound_cache[sound_key] = stream
 		return stream

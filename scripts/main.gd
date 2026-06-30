@@ -20,6 +20,15 @@ const MAP_ORIGIN := Vector2(28, 92)
 const MAP_SIZE := Vector2(GRID_WIDTH * TILE_SIZE, GRID_HEIGHT * TILE_SIZE)
 const PANEL_X := 1016.0
 const MAX_LEVELS := 5
+const PLAYER_BLOCKED_INTERVAL := 0.08
+const PLAYER_ATTACK_INTERVAL := 0.18
+const PLAYER_MOVE_TWEEN_DURATION := 0.08
+const ENEMY_MOVE_TWEEN_DURATION := 0.12
+const DASH_RANGE := 2
+const DASH_COOLDOWN_MAX := 1.4
+const DASH_TWEEN_DURATION := 0.06
+const MIN_PLAYER_STEP_INTERVAL := 0.08
+const FOUNTAIN_HEAL_AMOUNT := 2
 
 const DIRECTIONS := [
 	Vector2i(1, 0),
@@ -47,6 +56,7 @@ const TEXTURE_PATHS := {
 	"sword": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0103.png",
 	"shield": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0102.png",
 	"chest": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0079.png",
+	"fountain": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0032.png",
 	"rubble": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0053.png",
 	"torch": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0029.png",
 }
@@ -58,7 +68,10 @@ const ENEMY_TYPES := {
 		"attack": 1,
 		"score": 18,
 		"texture": "slime",
+		"role": "slow",
 		"awareness": 5,
+		"move_interval": 0.68,
+		"attack_interval": 1.10,
 	},
 	"bat": {
 		"name": "蝙蝠",
@@ -66,7 +79,10 @@ const ENEMY_TYPES := {
 		"attack": 1,
 		"score": 20,
 		"texture": "bat",
+		"role": "fast",
 		"awareness": 7,
+		"move_interval": 0.42,
+		"attack_interval": 0.95,
 	},
 	"cultist": {
 		"name": "烛影侍从",
@@ -74,7 +90,10 @@ const ENEMY_TYPES := {
 		"attack": 2,
 		"score": 35,
 		"texture": "cultist",
+		"role": "hunter",
 		"awareness": 6,
+		"move_interval": 0.58,
+		"attack_interval": 0.95,
 	},
 	"ghost": {
 		"name": "游魂",
@@ -82,7 +101,10 @@ const ENEMY_TYPES := {
 		"attack": 2,
 		"score": 45,
 		"texture": "ghost",
+		"role": "fast",
 		"awareness": 8,
+		"move_interval": 0.46,
+		"attack_interval": 0.90,
 	},
 	"brute": {
 		"name": "赤甲守卫",
@@ -90,7 +112,10 @@ const ENEMY_TYPES := {
 		"attack": 3,
 		"score": 70,
 		"texture": "brute",
+		"role": "heavy",
 		"awareness": 6,
+		"move_interval": 0.76,
+		"attack_interval": 1.15,
 	},
 	"boss": {
 		"name": "深井看守",
@@ -98,7 +123,13 @@ const ENEMY_TYPES := {
 		"attack": 3,
 		"score": 180,
 		"texture": "boss",
+		"role": "boss",
 		"awareness": 10,
+		"move_interval": 0.66,
+		"attack_interval": 0.85,
+		"phase_move_interval": 0.44,
+		"phase_attack_interval": 0.72,
+		"summon_on_half_hp": 2,
 	},
 }
 
@@ -114,6 +145,11 @@ const LEVEL_DEFS := [
 		"potions": 2,
 		"coins": 4,
 		"gear": ["sword"],
+		"chests": 0,
+		"fountains": 0,
+		"reward_count": 3,
+		"theme_color": Color(0.38, 0.47, 0.34, 1.0),
+		"boss_rules": {},
 	},
 	{
 		"title": "第二层：潮湿回廊",
@@ -127,6 +163,11 @@ const LEVEL_DEFS := [
 		"potions": 2,
 		"coins": 5,
 		"gear": [],
+		"chests": 1,
+		"fountains": 0,
+		"reward_count": 3,
+		"theme_color": Color(0.25, 0.42, 0.48, 1.0),
+		"boss_rules": {},
 	},
 	{
 		"title": "第三层：碎骨仓库",
@@ -140,6 +181,11 @@ const LEVEL_DEFS := [
 		"potions": 3,
 		"coins": 6,
 		"gear": ["shield"],
+		"chests": 1,
+		"fountains": 1,
+		"reward_count": 3,
+		"theme_color": Color(0.47, 0.40, 0.35, 1.0),
+		"boss_rules": {},
 	},
 	{
 		"title": "第四层：熄火祭室",
@@ -150,9 +196,14 @@ const LEVEL_DEFS := [
 			{"type": "ghost", "count": 2},
 			{"type": "brute", "count": 2},
 		],
-		"potions": 3,
+		"potions": 2,
 		"coins": 7,
 		"gear": [],
+		"chests": 1,
+		"fountains": 0,
+		"reward_count": 3,
+		"theme_color": Color(0.50, 0.29, 0.26, 1.0),
+		"boss_rules": {},
 	},
 	{
 		"title": "第五层：深井王座",
@@ -166,6 +217,49 @@ const LEVEL_DEFS := [
 		"potions": 4,
 		"coins": 8,
 		"gear": ["sword", "shield"],
+		"chests": 2,
+		"fountains": 1,
+		"reward_count": 0,
+		"theme_color": Color(0.38, 0.30, 0.50, 1.0),
+		"boss_rules": {"summon_on_half_hp": 2},
+	},
+]
+
+const REWARD_POOL := [
+	{
+		"id": "attack",
+		"title": "锋刃祝福",
+		"description": "攻击力 +1。",
+		"type": "attack",
+		"amount": 1,
+	},
+	{
+		"id": "max_hp",
+		"title": "余烬护身",
+		"description": "最大生命 +2，并恢复 2 点生命。",
+		"type": "max_hp",
+		"amount": 2,
+	},
+	{
+		"id": "move_speed",
+		"title": "轻步",
+		"description": "按住移动更快，移动间隔 -0.015 秒。",
+		"type": "move_speed",
+		"amount": 0.015,
+	},
+	{
+		"id": "potion_heal",
+		"title": "药剂熟手",
+		"description": "药水额外恢复 1 点生命。",
+		"type": "potion_heal",
+		"amount": 1,
+	},
+	{
+		"id": "kill_heal",
+		"title": "战后喘息",
+		"description": "击杀敌人有 18% 概率恢复 1 点生命。",
+		"type": "kill_heal",
+		"amount": 0.18,
 	},
 ]
 
@@ -180,11 +274,24 @@ var player_cell := Vector2i.ZERO
 var player_hp := 8
 var player_max_hp := 8
 var player_attack := 2
+var player_step_interval := 0.14
+var player_step_timer := 0.0
+var last_input_direction := Vector2i.ZERO
+var dash_cooldown := 0.0
+var dash_cooldown_max := DASH_COOLDOWN_MAX
+var potion_heal_amount := 3
+var kill_heal_chance := 0.0
+var selected_rewards: Array[String] = []
+var reward_choices: Array[Dictionary] = []
+var enemy_ai_enabled := false
 var exit_cell := Vector2i.ZERO
 var exit_open := false
+var exit_pulse_tween: Tween
 
 var enemies: Array[Dictionary] = []
 var items: Array[Dictionary] = []
+var chests: Array[Dictionary] = []
+var fountains: Array[Dictionary] = []
 var log_lines: Array[String] = []
 
 var background_layer: CanvasLayer
@@ -203,6 +310,7 @@ var hp_label: Label
 var attack_label: Label
 var score_label: Label
 var depth_label: Label
+var dash_label: Label
 var enemies_label: Label
 var status_label: Label
 var log_label: Label
@@ -215,6 +323,10 @@ var result_title_label: Label
 var result_body_label: Label
 var result_primary_button: Button
 var result_secondary_button: Button
+var reward_layer: CanvasLayer
+var reward_title_label: Label
+var reward_body_label: Label
+var reward_buttons: Array[Button] = []
 
 
 func _ready() -> void:
@@ -234,9 +346,13 @@ func _input(event: InputEvent) -> void:
 			return
 
 		if GameState.current_state == GameState.Playing:
+			if key_event.keycode == KEY_SHIFT or key_event.physical_keycode == KEY_SHIFT:
+				_attempt_dash()
+				return
 			var direction := _direction_from_key(key_event.keycode)
 			if direction != Vector2i.ZERO:
-				_attempt_player_step(direction)
+				last_input_direction = direction
+				player_step_timer = 0.0
 				return
 			if key_event.keycode == KEY_SPACE or key_event.keycode == KEY_PERIOD:
 				_wait_turn()
@@ -250,25 +366,60 @@ func _input(event: InputEvent) -> void:
 			return
 
 		if GameState.current_state == GameState.Completed and key_event.keycode == KEY_ENTER:
-			_on_result_primary_pressed()
+			if reward_layer != null and reward_layer.visible and not reward_choices.is_empty():
+				_on_reward_button_pressed(0)
+			else:
+				_on_result_primary_pressed()
+
+
+func _process(delta: float) -> void:
+	if GameState.current_state != GameState.Playing:
+		return
+
+	if dash_cooldown > 0.0:
+		dash_cooldown = maxf(dash_cooldown - delta, 0.0)
+		_refresh_hud()
+
+	_tick_player_movement(delta)
+	if enemy_ai_enabled:
+		_tick_enemies(delta)
+
+
+func _tick_player_movement(delta: float) -> void:
+	if player_step_timer > 0.0:
+		player_step_timer = maxf(player_step_timer - delta, 0.0)
+
+	var direction := _get_held_direction()
+	if direction == Vector2i.ZERO:
+		player_step_timer = 0.0
+		return
+
+	if player_step_timer <= 0.0:
+		_attempt_player_step(direction)
 
 
 func show_menu() -> void:
 	GameState.show_menu()
+	enemy_ai_enabled = false
 	menu_layer.visible = true
 	instructions_layer.visible = false
 	pause_layer.visible = false
 	result_layer.visible = false
+	if reward_layer != null:
+		reward_layer.visible = false
 	_set_hud_visible(false)
 	_refresh_continue_button()
 
 
 func show_instructions() -> void:
 	GameState.show_instructions()
+	enemy_ai_enabled = false
 	menu_layer.visible = false
 	instructions_layer.visible = true
 	pause_layer.visible = false
 	result_layer.visible = false
+	if reward_layer != null:
+		reward_layer.visible = false
 	_set_hud_visible(false)
 
 
@@ -276,14 +427,26 @@ func hide_instructions() -> void:
 	show_menu()
 
 
+func _reset_run_modifiers() -> void:
+	player_max_hp = 8
+	player_hp = player_max_hp
+	player_attack = 2
+	player_step_interval = 0.14
+	player_step_timer = 0.0
+	dash_cooldown = 0.0
+	dash_cooldown_max = DASH_COOLDOWN_MAX
+	potion_heal_amount = 3
+	kill_heal_chance = 0.0
+	selected_rewards.clear()
+	reward_choices.clear()
+
+
 func start_new_run() -> void:
 	GameData.configure_levels(LEVEL_DEFS.size())
 	GameData.reset_progress()
 	GameData.reset_hint_count()
 	GameData.reset()
-	player_max_hp = 8
-	player_hp = player_max_hp
-	player_attack = 2
+	_reset_run_modifiers()
 	GameData.player_health = player_hp
 	GameData.health_changed.emit(player_hp)
 	GameData.set_current_level(0)
@@ -306,9 +469,7 @@ func continue_run() -> void:
 		int(progress.get("hint_count", 0)),
 		bool(progress.get("has_seen_tutorial", false))
 	)
-	player_max_hp = 8
-	player_hp = player_max_hp
-	player_attack = 2
+	_reset_run_modifiers()
 	GameData.reset()
 	GameData.player_health = player_hp
 	GameData.health_changed.emit(player_hp)
@@ -322,6 +483,8 @@ func restart_level() -> void:
 	player_hp = player_max_hp
 	GameData.player_health = player_hp
 	GameData.health_changed.emit(player_hp)
+	enemy_ai_enabled = false
+	dash_cooldown = 0.0
 	_add_log("你重新整理装备，再次踏入这一层。")
 	_load_level(current_level_index)
 
@@ -329,6 +492,7 @@ func restart_level() -> void:
 func resume_game() -> void:
 	if GameState.current_state == GameState.Paused:
 		GameState.set_state(GameState.Playing)
+		enemy_ai_enabled = true
 		pause_layer.visible = false
 		_set_hud_visible(true)
 
@@ -337,6 +501,7 @@ func pause_game() -> void:
 	if GameState.current_state != GameState.Playing:
 		return
 	GameState.set_state(GameState.Paused)
+	enemy_ai_enabled = false
 	pause_layer.visible = true
 	_set_hud_visible(true)
 
@@ -345,16 +510,23 @@ func _load_level(level_index: int) -> void:
 	current_level_index = clampi(level_index, 0, LEVEL_DEFS.size() - 1)
 	GameData.start_level(current_level_index)
 	GameState.start_level(current_level_index)
+	player_step_timer = 0.0
+	dash_cooldown = 0.0
+	last_input_direction = Vector2i.ZERO
+	enemy_ai_enabled = false
 	menu_layer.visible = false
 	instructions_layer.visible = false
 	pause_layer.visible = false
 	result_layer.visible = false
+	if reward_layer != null:
+		reward_layer.visible = false
 	_set_hud_visible(true)
 
 	_generate_dungeon()
 	_populate_level()
 	_render_level()
 	_refresh_hud()
+	enemy_ai_enabled = true
 	_add_log("进入 " + str(LEVEL_DEFS[current_level_index]["title"]) + "。")
 
 
@@ -367,6 +539,7 @@ func _load_textures() -> void:
 
 func _build_scene() -> void:
 	background_layer = CanvasLayer.new()
+	background_layer.layer = -10
 	add_child(background_layer)
 	var background := ColorRect.new()
 	background.size = WINDOW_SIZE
@@ -403,12 +576,14 @@ func _build_scene() -> void:
 
 	ui_layer = CanvasLayer.new()
 	ui_layer.name = "UILayer"
+	ui_layer.layer = 10
 	add_child(ui_layer)
 	_build_hud()
 	_build_menu()
 	_build_instructions()
 	_build_pause()
 	_build_result_layer()
+	_build_reward_layer()
 
 
 func _build_hud() -> void:
@@ -418,29 +593,31 @@ func _build_hud() -> void:
 	panel.add_theme_stylebox_override("panel", _panel_style(Color(0.105, 0.125, 0.115, 0.96), Color(0.35, 0.46, 0.34, 0.9)))
 	ui_layer.add_child(panel)
 
-	title_label = _make_label(panel, Vector2(18, 18), Vector2(200, 58), "", 24, Color(0.96, 0.92, 0.74, 1.0))
-	goal_label = _make_label(panel, Vector2(18, 80), Vector2(200, 74), "", 15, Color(0.78, 0.84, 0.74, 1.0))
-	depth_label = _make_label(panel, Vector2(18, 168), Vector2(200, 28), "", 17, Color(0.98, 0.75, 0.42, 1.0))
-	hp_label = _make_label(panel, Vector2(18, 212), Vector2(200, 28), "", 18, Color(0.95, 0.46, 0.36, 1.0))
-	attack_label = _make_label(panel, Vector2(18, 244), Vector2(200, 28), "", 18, Color(0.78, 0.86, 0.98, 1.0))
-	score_label = _make_label(panel, Vector2(18, 276), Vector2(200, 28), "", 18, Color(0.94, 0.82, 0.45, 1.0))
-	enemies_label = _make_label(panel, Vector2(18, 308), Vector2(200, 28), "", 18, Color(0.83, 0.74, 0.96, 1.0))
-	status_label = _make_label(panel, Vector2(18, 354), Vector2(200, 70), "", 15, Color(0.78, 0.86, 0.80, 1.0))
-	log_label = _make_label(panel, Vector2(18, 438), Vector2(200, 178), "", 14, Color(0.68, 0.74, 0.70, 1.0))
+	title_label = _make_label(panel, Vector2(18, 16), Vector2(200, 50), "", 22, Color(0.96, 0.92, 0.74, 1.0))
+	depth_label = _make_label(panel, Vector2(18, 72), Vector2(200, 24), "", 16, Color(0.98, 0.75, 0.42, 1.0))
+	hp_label = _make_label(panel, Vector2(18, 110), Vector2(200, 26), "", 18, Color(0.95, 0.46, 0.36, 1.0))
+	attack_label = _make_label(panel, Vector2(18, 140), Vector2(200, 24), "", 16, Color(0.78, 0.86, 0.98, 1.0))
+	dash_label = _make_label(panel, Vector2(18, 170), Vector2(200, 24), "", 16, Color(0.78, 0.92, 0.92, 1.0))
+	score_label = _make_label(panel, Vector2(18, 200), Vector2(200, 24), "", 16, Color(0.94, 0.82, 0.45, 1.0))
+	enemies_label = _make_label(panel, Vector2(18, 230), Vector2(200, 24), "", 16, Color(0.83, 0.74, 0.96, 1.0))
+	goal_label = _make_label(panel, Vector2(18, 274), Vector2(200, 76), "", 15, Color(0.78, 0.84, 0.74, 1.0))
+	status_label = _make_label(panel, Vector2(18, 366), Vector2(200, 66), "", 15, Color(0.78, 0.86, 0.80, 1.0))
+	log_label = _make_label(panel, Vector2(18, 452), Vector2(200, 160), "", 14, Color(0.68, 0.74, 0.70, 1.0))
 
-	var hint := _make_label(panel, Vector2(18, 622), Vector2(200, 28), "Esc 暂停  |  R 重开本层", 13, Color(0.55, 0.63, 0.58, 1.0))
+	var hint := _make_label(panel, Vector2(18, 622), Vector2(200, 34), "Shift 冲刺  |  Esc 暂停  |  R 重开", 12, Color(0.55, 0.63, 0.58, 1.0))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 
 func _build_menu() -> void:
 	menu_layer = CanvasLayer.new()
 	menu_layer.name = "MenuLayer"
+	menu_layer.layer = 20
 	add_child(menu_layer)
 	_add_overlay_shade(menu_layer, Color(0.03, 0.04, 0.04, 0.72))
 
 	var panel := _make_center_panel(menu_layer, Vector2(540, 420))
 	_make_label(panel, Vector2(38, 30), Vector2(464, 48), "井下余烬", 38, Color(0.98, 0.88, 0.58, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
-	_make_label(panel, Vector2(58, 88), Vector2(424, 70), "一款小型回合制地牢 roguelike。清理每层敌人，搜刮补给，走到出口继续深入。", 17, Color(0.72, 0.82, 0.74, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	_make_label(panel, Vector2(58, 88), Vector2(424, 70), "实时格子移动、Shift 短冲刺、逐层祝福。清理敌群，打开补给，活着走到深井王座。", 17, Color(0.72, 0.82, 0.74, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
 	var start_button := _make_button(panel, Vector2(154, 178), Vector2(232, 44), "开始新探险")
 	start_button.pressed.connect(start_new_run)
 	continue_button = _make_button(panel, Vector2(154, 232), Vector2(232, 44), "继续探险")
@@ -454,13 +631,14 @@ func _build_menu() -> void:
 func _build_instructions() -> void:
 	instructions_layer = CanvasLayer.new()
 	instructions_layer.name = "InstructionsLayer"
+	instructions_layer.layer = 20
 	instructions_layer.visible = false
 	add_child(instructions_layer)
 	_add_overlay_shade(instructions_layer, Color(0.03, 0.04, 0.04, 0.76))
 
 	var panel := _make_center_panel(instructions_layer, Vector2(690, 470))
 	_make_label(panel, Vector2(42, 30), Vector2(606, 44), "探索指南", 32, Color(0.98, 0.88, 0.58, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
-	var body := "方向键 / WASD / HJKL：移动；撞向敌人即可攻击。\n\nSpace 或 .：原地等待一回合。敌人会在你行动后移动或攻击。\n\n药水会立刻治疗，金币给分，剑提高攻击，盾提高最大生命。\n\n清掉本层所有敌人后，出口会点亮。踩上出口进入下一层。"
+	var body := "方向键 / WASD / HJKL：按住连续移动；撞向敌人即可攻击。\n\nShift：向当前方向短冲刺，最多 2 格，不能穿墙或穿过敌人。\n\n宝箱会给金币、治疗或临时强化；喷泉每层只能使用一次。\n\n敌人会按自己的节奏持续行动，停在原地也不会安全。\n\n清掉本层敌人后，出口会点亮。非最终层会先选择 1 个楼层祝福。"
 	_make_label(panel, Vector2(60, 96), Vector2(570, 260), body, 18, Color(0.75, 0.84, 0.76, 1.0))
 	var back_button := _make_button(panel, Vector2(236, 382), Vector2(218, 44), "返回主菜单")
 	back_button.pressed.connect(hide_instructions)
@@ -469,6 +647,7 @@ func _build_instructions() -> void:
 func _build_pause() -> void:
 	pause_layer = CanvasLayer.new()
 	pause_layer.name = "PauseLayer"
+	pause_layer.layer = 20
 	pause_layer.visible = false
 	add_child(pause_layer)
 	_add_overlay_shade(pause_layer, Color(0.03, 0.04, 0.04, 0.58))
@@ -486,6 +665,7 @@ func _build_pause() -> void:
 func _build_result_layer() -> void:
 	result_layer = CanvasLayer.new()
 	result_layer.name = "ResultLayer"
+	result_layer.layer = 20
 	result_layer.visible = false
 	add_child(result_layer)
 	_add_overlay_shade(result_layer, Color(0.02, 0.025, 0.025, 0.72))
@@ -497,6 +677,26 @@ func _build_result_layer() -> void:
 	result_primary_button.pressed.connect(_on_result_primary_pressed)
 	result_secondary_button = _make_button(panel, Vector2(294, 248), Vector2(176, 42), "主菜单")
 	result_secondary_button.pressed.connect(show_menu)
+
+
+func _build_reward_layer() -> void:
+	reward_layer = CanvasLayer.new()
+	reward_layer.name = "RewardLayer"
+	reward_layer.layer = 20
+	reward_layer.visible = false
+	add_child(reward_layer)
+	_add_overlay_shade(reward_layer, Color(0.02, 0.025, 0.025, 0.70))
+
+	var panel := _make_center_panel(reward_layer, Vector2(720, 390))
+	reward_title_label = _make_label(panel, Vector2(42, 30), Vector2(636, 42), "楼层祝福", 32, Color(0.98, 0.88, 0.58, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	reward_body_label = _make_label(panel, Vector2(70, 84), Vector2(580, 54), "出口亮起，但井下还有回声。选择一个祝福，再继续深入。", 17, Color(0.76, 0.86, 0.78, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	for i in range(3):
+		var button := _make_button(panel, Vector2(58 + i * 212, 166), Vector2(182, 134), "")
+		button.add_theme_font_size_override("font_size", 15)
+		button.pressed.connect(_on_reward_button_pressed.bind(i))
+		reward_buttons.append(button)
+	var hint := _make_label(panel, Vector2(70, 326), Vector2(580, 28), "Enter 选择第一项", 13, Color(0.58, 0.68, 0.60, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func _generate_dungeon() -> void:
@@ -552,6 +752,8 @@ func _build_fallback_dungeon() -> void:
 func _populate_level() -> void:
 	enemies.clear()
 	items.clear()
+	chests.clear()
+	fountains.clear()
 
 	var reserved: Array[Vector2i] = [player_cell, exit_cell]
 	var level_def: Dictionary = LEVEL_DEFS[current_level_index]
@@ -579,13 +781,30 @@ func _populate_level() -> void:
 		reserved.append(gear_cell)
 		items.append(_make_item(str(gear), gear_cell))
 
+	for _i in range(int(level_def.get("chests", 0))):
+		var chest_cell := _find_empty_floor_cell(reserved, true)
+		reserved.append(chest_cell)
+		chests.append(_make_chest(chest_cell))
+
+	for _i in range(int(level_def.get("fountains", 0))):
+		var fountain_cell := _find_empty_floor_cell(reserved, true)
+		reserved.append(fountain_cell)
+		fountains.append(_make_fountain(fountain_cell))
+
 
 func _render_level() -> void:
+	if exit_pulse_tween != null and exit_pulse_tween.is_valid():
+		exit_pulse_tween.kill()
+	exit_pulse_tween = null
 	_clear_layer(map_layer)
 	_clear_layer(decor_layer)
 	_clear_layer(item_layer)
 	_clear_layer(actor_layer)
 	_clear_layer(fx_layer)
+	var level_def: Dictionary = LEVEL_DEFS[current_level_index]
+	var theme_color := Color.WHITE
+	if level_def.has("theme_color") and level_def["theme_color"] is Color:
+		theme_color = level_def["theme_color"]
 
 	for y in range(GRID_HEIGHT):
 		for x in range(GRID_WIDTH):
@@ -597,7 +816,8 @@ func _render_level() -> void:
 				var floor_key := "floor_alt" if (x * 7 + y * 3 + current_level_index) % 9 == 0 else "floor"
 				if (x * 11 + y * 5) % 17 == 0:
 					floor_key = "floor_mark"
-				_make_tile_sprite(floor_key, cell, map_layer, 0)
+				var floor_sprite := _make_tile_sprite(floor_key, cell, map_layer, 0)
+				floor_sprite.modulate = theme_color.lerp(Color.WHITE, 0.68)
 
 	_add_decor()
 	exit_node = _make_tile_sprite("door", exit_cell, actor_layer, 1)
@@ -605,6 +825,14 @@ func _render_level() -> void:
 
 	for item in items:
 		item["node"] = _make_tile_sprite(str(item["texture"]), item["cell"], item_layer, 1)
+
+	for chest in chests:
+		chest["node"] = _make_tile_sprite("chest", chest["cell"], item_layer, 1)
+
+	for fountain in fountains:
+		var fountain_node := _make_tile_sprite("fountain", fountain["cell"], item_layer, 1)
+		fountain_node.modulate = Color(0.72, 1.0, 0.92, 1.0)
+		fountain["node"] = fountain_node
 
 	player_node = Node2D.new()
 	player_node.position = _cell_to_world(player_cell)
@@ -622,13 +850,17 @@ func _render_level() -> void:
 
 
 func _add_decor() -> void:
-	var decor_keys: Array[String] = ["rubble", "torch", "chest"]
+	var decor_keys: Array[String] = ["rubble", "torch"]
 	var decor_count := 10 + current_level_index * 2
 	var reserved: Array[Vector2i] = [player_cell, exit_cell]
 	for enemy in enemies:
 		reserved.append(enemy["cell"])
 	for item in items:
 		reserved.append(item["cell"])
+	for chest in chests:
+		reserved.append(chest["cell"])
+	for fountain in fountains:
+		reserved.append(fountain["cell"])
 
 	for _i in range(decor_count):
 		var cell := _find_empty_floor_cell(reserved, false)
@@ -649,36 +881,95 @@ func _attempt_player_step(direction: Vector2i) -> void:
 		_add_log("石墙挡住了去路。")
 		AudioManager.play_sound("blocked")
 		_bump_node(player_node, direction)
+		player_step_timer = PLAYER_BLOCKED_INTERVAL
 		return
 
 	var enemy: Variant = _enemy_at(target)
 	if enemy != null:
 		_attack_enemy(enemy)
-		if GameState.current_state == GameState.Playing:
-			_run_enemy_turns()
+		player_step_timer = PLAYER_ATTACK_INTERVAL
 		_refresh_hud()
 		return
 
 	player_cell = target
-	_tween_node_to_cell(player_node, player_cell, 0.08)
+	_tween_node_to_cell(player_node, player_cell, PLAYER_MOVE_TWEEN_DURATION)
+	if _handle_player_landing():
+		return
+
+	player_step_timer = player_step_interval
+	_refresh_hud()
+
+
+func _attempt_dash() -> void:
+	if GameState.current_state != GameState.Playing:
+		return
+	if dash_cooldown > 0.0:
+		_add_log("冲刺还在冷却：" + str(snappedf(dash_cooldown, 0.1)) + " 秒。")
+		_refresh_hud()
+		return
+
+	var previous_direction := last_input_direction
+	var direction := _get_held_direction()
+	if direction == Vector2i.ZERO:
+		direction = previous_direction
+	if direction == Vector2i.ZERO:
+		_add_log("先按住一个方向，再短冲刺。")
+		return
+
+	var moved := 0
+	for _i in range(DASH_RANGE):
+		var candidate := player_cell + direction
+		if not _is_inside(candidate) or _tile_at(candidate) == Tile.WALL:
+			break
+		if _enemy_at(candidate) != null:
+			break
+		player_cell = candidate
+		moved += 1
+		_collect_item_at(player_cell)
+		_open_chest_at(player_cell)
+		_use_fountain_at(player_cell)
+		if player_cell == exit_cell and exit_open:
+			_tween_node_to_cell(player_node, player_cell, DASH_TWEEN_DURATION)
+			dash_cooldown = dash_cooldown_max
+			_complete_current_level()
+			return
+
+	if moved <= 0:
+		_add_log("冲刺路线被挡住了。")
+		AudioManager.play_sound("blocked")
+		_bump_node(player_node, direction)
+		player_step_timer = PLAYER_BLOCKED_INTERVAL
+		return
+
+	AudioManager.play_sound("drop")
+	_tween_node_to_cell(player_node, player_cell, DASH_TWEEN_DURATION)
+	dash_cooldown = dash_cooldown_max
+	player_step_timer = player_step_interval
+	if player_cell == exit_cell and not exit_open:
+		_add_log("出口还没有回应。先清掉本层敌人。")
+	_refresh_hud()
+
+
+func _handle_player_landing() -> bool:
 	_collect_item_at(player_cell)
+	_open_chest_at(player_cell)
+	_use_fountain_at(player_cell)
 
 	if player_cell == exit_cell and exit_open:
 		_complete_current_level()
-		return
+		return true
 	elif player_cell == exit_cell and not exit_open:
 		_add_log("出口还没有回应。先清掉本层敌人。")
 
-	if GameState.current_state == GameState.Playing:
-		_run_enemy_turns()
-	_refresh_hud()
+	return false
 
 
 func _wait_turn() -> void:
 	if GameState.current_state != GameState.Playing:
 		return
-	_add_log("你屏住呼吸，听见远处有脚步声。")
-	_run_enemy_turns()
+	last_input_direction = Vector2i.ZERO
+	player_step_timer = player_step_interval
+	_add_log("你停下脚步，听见远处的脚步声仍在靠近。")
 	_refresh_hud()
 
 
@@ -687,10 +978,13 @@ func _attack_enemy(enemy: Dictionary) -> void:
 	enemy["hp"] = int(enemy["hp"]) - damage
 	AudioManager.play_sound("attack")
 	_add_log("你击中 " + str(enemy["name"]) + "，造成 " + str(damage) + " 点伤害。")
-	_flash_node(enemy.get("node"), Color(1.0, 0.62, 0.45, 1.0))
+	_flash_enemy(enemy, Color(1.0, 0.62, 0.45, 1.0))
+	_update_enemy_health_bar(enemy)
 
 	if int(enemy["hp"]) <= 0:
 		_kill_enemy(enemy)
+	elif str(enemy.get("role", "")) == "boss" and not bool(enemy.get("phase_triggered", false)) and int(enemy["hp"]) <= int(enemy["max_hp"]) / 2:
+		_trigger_boss_phase(enemy)
 
 
 func _kill_enemy(enemy: Dictionary) -> void:
@@ -705,6 +999,12 @@ func _kill_enemy(enemy: Dictionary) -> void:
 
 	var dead_cell: Vector2i = enemy["cell"]
 	enemies.erase(enemy)
+	if kill_heal_chance > 0.0 and player_hp < player_max_hp and rng.randf() < kill_heal_chance:
+		player_hp = mini(player_hp + 1, player_max_hp)
+		GameData.player_health = player_hp
+		GameData.health_changed.emit(player_hp)
+		_add_log("你借战后的喘息恢复 1 点生命。")
+
 	if rng.randf() < 0.24:
 		var drop_type := "potion" if rng.randf() < 0.36 else "coin"
 		var item := _make_item(drop_type, dead_cell)
@@ -714,30 +1014,45 @@ func _kill_enemy(enemy: Dictionary) -> void:
 	_refresh_exit()
 
 
-func _run_enemy_turns() -> void:
+func _tick_enemies(delta: float) -> void:
 	for enemy in enemies.duplicate():
 		if GameState.current_state != GameState.Playing:
 			return
 		if not enemies.has(enemy):
 			continue
+
+		enemy["move_cooldown"] = maxf(float(enemy.get("move_cooldown", 0.0)) - delta, 0.0)
+		enemy["attack_cooldown"] = maxf(float(enemy.get("attack_cooldown", 0.0)) - delta, 0.0)
+
 		var enemy_cell: Vector2i = enemy["cell"]
 		var distance := _manhattan(enemy_cell, player_cell)
 		if distance <= 1:
-			_enemy_attack_player(enemy)
+			if float(enemy.get("attack_cooldown", 0.0)) <= 0.0:
+				_enemy_attack_player(enemy)
+				enemy["attack_cooldown"] = float(enemy.get("attack_interval", 1.0))
 			continue
 
-		var next_cell := enemy_cell
-		if distance <= int(enemy["awareness"]):
-			next_cell = _best_enemy_step(enemy)
-		elif rng.randf() < 0.24:
-			var direction: Vector2i = DIRECTIONS[rng.randi_range(0, DIRECTIONS.size() - 1)]
-			var wander_cell := enemy_cell + direction
-			if _can_enemy_enter(wander_cell, enemy):
-				next_cell = wander_cell
+		if float(enemy.get("move_cooldown", 0.0)) <= 0.0:
+			_run_single_enemy(enemy)
 
-		if next_cell != enemy_cell:
-			enemy["cell"] = next_cell
-			_tween_node_to_cell(enemy.get("node"), next_cell, 0.12)
+
+func _run_single_enemy(enemy: Dictionary) -> void:
+	var enemy_cell: Vector2i = enemy["cell"]
+	var distance := _manhattan(enemy_cell, player_cell)
+	var next_cell := enemy_cell
+	if distance <= int(enemy["awareness"]):
+		next_cell = _best_enemy_step(enemy)
+	elif rng.randf() < 0.28:
+		var direction: Vector2i = DIRECTIONS[rng.randi_range(0, DIRECTIONS.size() - 1)]
+		var wander_cell := enemy_cell + direction
+		if _can_enemy_enter(wander_cell, enemy):
+			next_cell = wander_cell
+
+	if next_cell != enemy_cell:
+		enemy["cell"] = next_cell
+		_tween_node_to_cell(enemy.get("node"), next_cell, ENEMY_MOVE_TWEEN_DURATION)
+
+	enemy["move_cooldown"] = float(enemy.get("move_interval", 0.6))
 
 
 func _enemy_attack_player(enemy: Dictionary) -> void:
@@ -754,6 +1069,33 @@ func _enemy_attack_player(enemy: Dictionary) -> void:
 		_game_over()
 
 
+func _trigger_boss_phase(enemy: Dictionary) -> void:
+	enemy["phase_triggered"] = true
+	enemy["move_interval"] = float(enemy.get("phase_move_interval", enemy.get("move_interval", 0.6)))
+	enemy["attack_interval"] = float(enemy.get("phase_attack_interval", enemy.get("attack_interval", 0.85)))
+	enemy["move_cooldown"] = 0.05
+	enemy["base_modulate"] = Color(1.0, 0.42, 0.32, 1.0)
+	var sprite: Variant = enemy.get("sprite")
+	if sprite != null and is_instance_valid(sprite):
+		sprite.modulate = enemy["base_modulate"]
+
+	_add_log("深井看守怒吼，井壁间涌出游魂。")
+	var summon_count := int(enemy.get("summon_on_half_hp", 2))
+	var boss_rules: Dictionary = LEVEL_DEFS[current_level_index].get("boss_rules", {})
+	summon_count = int(boss_rules.get("summon_on_half_hp", summon_count))
+	var spawn_cells := _find_spawn_cells_near(enemy["cell"], summon_count)
+	for cell in spawn_cells:
+		var ghost := _make_enemy("ghost", cell)
+		ghost["name"] = "低血游魂"
+		ghost["hp"] = 2
+		ghost["max_hp"] = 2
+		ghost["score"] = 18
+		ghost["move_cooldown"] = 0.1
+		enemies.append(ghost)
+		ghost["node"] = _make_enemy_node(ghost)
+		_flash_enemy(ghost, Color(0.82, 0.62, 1.0, 1.0))
+
+
 func _collect_item_at(cell: Vector2i) -> void:
 	var item: Variant = _item_at(cell)
 	if item == null:
@@ -762,7 +1104,7 @@ func _collect_item_at(cell: Vector2i) -> void:
 	match str(item["type"]):
 		"potion":
 			var before := player_hp
-			player_hp = mini(player_hp + 3, player_max_hp)
+			player_hp = mini(player_hp + potion_heal_amount, player_max_hp)
 			GameData.player_health = player_hp
 			GameData.health_changed.emit(player_hp)
 			_add_log("喝下药水，恢复 " + str(player_hp - before) + " 点生命。")
@@ -792,6 +1134,56 @@ func _collect_item_at(cell: Vector2i) -> void:
 	items.erase(item)
 
 
+func _open_chest_at(cell: Vector2i) -> bool:
+	var chest: Variant = _chest_at(cell)
+	if chest == null or bool(chest.get("opened", false)):
+		return false
+
+	chest["opened"] = true
+	var node: Variant = chest.get("node")
+	if node != null and is_instance_valid(node):
+		node.modulate = Color(0.54, 0.46, 0.34, 0.76)
+	ParticleManager.play_collect_effect(_cell_to_world(cell))
+	AudioManager.play_sound("gear")
+
+	var roll := rng.randf()
+	if roll < 0.42:
+		var score_gain := 55 + current_level_index * 8
+		GameData.add_score(score_gain)
+		_add_log("打开宝箱，找到 " + str(score_gain) + " 分的旧金币。")
+	elif roll < 0.72:
+		var before := player_hp
+		player_hp = mini(player_hp + potion_heal_amount, player_max_hp)
+		GameData.player_health = player_hp
+		GameData.health_changed.emit(player_hp)
+		_add_log("宝箱里有药剂，恢复 " + str(player_hp - before) + " 点生命。")
+	else:
+		player_attack += 1
+		_add_log("宝箱里的余烬刻印让攻击力 +1。")
+	_refresh_hud()
+	return true
+
+
+func _use_fountain_at(cell: Vector2i) -> bool:
+	var fountain: Variant = _fountain_at(cell)
+	if fountain == null or bool(fountain.get("used", false)):
+		return false
+
+	fountain["used"] = true
+	var before := player_hp
+	player_hp = mini(player_hp + FOUNTAIN_HEAL_AMOUNT, player_max_hp)
+	GameData.player_health = player_hp
+	GameData.health_changed.emit(player_hp)
+	var node: Variant = fountain.get("node")
+	if node != null and is_instance_valid(node):
+		node.modulate = Color(0.32, 0.42, 0.40, 0.72)
+	ParticleManager.play_collect_effect(_cell_to_world(cell))
+	AudioManager.play_sound("potion")
+	_add_log("你饮下冷泉，恢复 " + str(player_hp - before) + " 点生命。")
+	_refresh_hud()
+	return true
+
+
 func _complete_current_level() -> void:
 	GameData.complete_level(current_level_index)
 	var is_last_level := current_level_index >= LEVEL_DEFS.size() - 1
@@ -805,7 +1197,7 @@ func _complete_current_level() -> void:
 		run_outcome = RunOutcome.LEVEL_COMPLETE
 		GameData.set_current_level(current_level_index + 1)
 		SaveManager.save_progress(GameData.current_level_index, GameData.completed_levels, GameData.hint_count, GameData.has_seen_tutorial)
-		_show_result("楼层清理完毕", "出口的火光亮起。下一层会更危险。\n当前得分：" + str(GameData.score), "进入下一层", "主菜单")
+		_show_reward_choices()
 		AudioManager.play_sound("stairs")
 
 
@@ -818,11 +1210,14 @@ func _game_over() -> void:
 
 func _show_result(title: String, body: String, primary_text: String, secondary_text: String) -> void:
 	GameState.set_state(GameState.Completed)
+	enemy_ai_enabled = false
 	result_title_label.text = title
 	result_body_label.text = body
 	result_primary_button.text = primary_text
 	result_secondary_button.text = secondary_text
 	result_layer.visible = true
+	if reward_layer != null:
+		reward_layer.visible = false
 	pause_layer.visible = false
 	menu_layer.visible = false
 	instructions_layer.visible = false
@@ -841,27 +1236,110 @@ func _on_result_primary_pressed() -> void:
 			show_menu()
 
 
+func _show_reward_choices() -> void:
+	GameState.set_state(GameState.Completed)
+	enemy_ai_enabled = false
+	reward_choices.clear()
+	var available: Array = REWARD_POOL.duplicate()
+	available.shuffle()
+	var count := mini(3, int(LEVEL_DEFS[current_level_index].get("reward_count", 3)))
+	for i in range(count):
+		reward_choices.append(available[i])
+
+	reward_title_label.text = "楼层祝福"
+	reward_body_label.text = "第 " + str(current_level_index + 1) + " 层已清空。选择 1 个祝福，进入 " + str(LEVEL_DEFS[GameData.current_level_index]["title"]) + "。"
+	for i in range(reward_buttons.size()):
+		var button := reward_buttons[i]
+		if i < reward_choices.size():
+			button.visible = true
+			button.disabled = false
+			button.text = _format_reward_button_text(reward_choices[i])
+		else:
+			button.visible = false
+			button.disabled = true
+
+	result_layer.visible = false
+	reward_layer.visible = true
+	pause_layer.visible = false
+	menu_layer.visible = false
+	instructions_layer.visible = false
+	_set_hud_visible(true)
+
+
+func _on_reward_button_pressed(index: int) -> void:
+	if index < 0 or index >= reward_choices.size():
+		return
+	_apply_reward(reward_choices[index])
+	reward_layer.visible = false
+	SaveManager.save_progress(GameData.current_level_index, GameData.completed_levels, GameData.hint_count, GameData.has_seen_tutorial)
+	_load_level(GameData.current_level_index)
+
+
+func _format_reward_button_text(reward: Dictionary) -> String:
+	return str(reward["title"]) + "\n\n" + str(reward["description"])
+
+
+func _apply_reward(reward: Dictionary) -> void:
+	selected_rewards.append(str(reward["title"]))
+	match str(reward["type"]):
+		"attack":
+			player_attack += int(reward["amount"])
+			_add_log("祝福生效：攻击力 +" + str(reward["amount"]) + "。")
+		"max_hp":
+			var amount := int(reward["amount"])
+			player_max_hp += amount
+			player_hp = mini(player_hp + amount, player_max_hp)
+			GameData.player_health = player_hp
+			GameData.health_changed.emit(player_hp)
+			_add_log("祝福生效：最大生命 +" + str(amount) + "。")
+		"move_speed":
+			player_step_interval = maxf(MIN_PLAYER_STEP_INTERVAL, player_step_interval - float(reward["amount"]))
+			_add_log("祝福生效：步伐更轻了。")
+		"potion_heal":
+			potion_heal_amount += int(reward["amount"])
+			_add_log("祝福生效：药水治疗 +" + str(reward["amount"]) + "。")
+		"kill_heal":
+			kill_heal_chance += float(reward["amount"])
+			_add_log("祝福生效：击杀有概率回血。")
+	AudioManager.play_sound("complete")
+
+
 func _refresh_hud() -> void:
 	var level_def: Dictionary = LEVEL_DEFS[current_level_index]
 	title_label.text = str(level_def["title"])
-	goal_label.text = str(level_def["goal"])
 	depth_label.text = "深度 " + str(current_level_index + 1) + " / " + str(LEVEL_DEFS.size())
 	hp_label.text = "生命 " + str(player_hp) + " / " + str(player_max_hp)
+	var low_health := player_hp <= maxi(2, int(ceil(player_max_hp * 0.35)))
+	hp_label.add_theme_color_override("font_color", Color(1.0, 0.25, 0.18, 1.0) if low_health else Color(0.95, 0.46, 0.36, 1.0))
 	attack_label.text = "攻击 " + str(player_attack) + " - " + str(player_attack + 1)
+	dash_label.text = "冲刺 就绪" if dash_cooldown <= 0.0 else "冲刺 " + str(snappedf(dash_cooldown, 0.1)) + "s"
+	dash_label.add_theme_color_override("font_color", Color(0.64, 0.96, 0.86, 1.0) if dash_cooldown <= 0.0 else Color(0.62, 0.72, 0.78, 1.0))
 	score_label.text = "得分 " + str(GameData.score)
 	enemies_label.text = "敌人 " + str(enemies.size())
-	status_label.text = "出口已开启。" if exit_open else "清理所有敌人后，出口会开启。"
+	goal_label.text = "目标\n" + str(level_def["goal"])
+	var unopened_chests := _count_unopened_chests()
+	var unused_fountains := _count_unused_fountains()
+	var status_text := "出口已开启，踩上去继续。" if exit_open else "清理敌人开启出口。"
+	if unopened_chests > 0:
+		status_text += "\n宝箱 " + str(unopened_chests)
+	if unused_fountains > 0:
+		status_text += "  喷泉 " + str(unused_fountains)
+	status_label.text = status_text
 	log_label.text = "\n".join(log_lines)
 	_refresh_exit()
 
 
 func _refresh_exit() -> void:
+	var was_open := exit_open
 	exit_open = enemies.is_empty()
 	if exit_node != null and is_instance_valid(exit_node):
 		if exit_open:
 			exit_node.modulate = Color(1.0, 0.92, 0.45, 1.0)
+			if not was_open:
+				_pulse_exit()
 		else:
 			exit_node.modulate = Color(0.42, 0.47, 0.49, 0.84)
+			exit_node.scale = Vector2.ONE * 2.0
 
 
 func _add_log(message: String) -> void:
@@ -886,6 +1364,39 @@ func _direction_from_key(keycode: Key) -> Vector2i:
 			return Vector2i.ZERO
 
 
+func _get_held_direction() -> Vector2i:
+	if last_input_direction != Vector2i.ZERO and _is_direction_pressed(last_input_direction):
+		return last_input_direction
+
+	if Input.is_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_H):
+		last_input_direction = Vector2i(-1, 0)
+		return last_input_direction
+	if Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_L):
+		last_input_direction = Vector2i(1, 0)
+		return last_input_direction
+	if Input.is_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_K):
+		last_input_direction = Vector2i(0, -1)
+		return last_input_direction
+	if Input.is_key_pressed(KEY_DOWN) or Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_J):
+		last_input_direction = Vector2i(0, 1)
+		return last_input_direction
+
+	last_input_direction = Vector2i.ZERO
+	return Vector2i.ZERO
+
+
+func _is_direction_pressed(direction: Vector2i) -> bool:
+	if direction == Vector2i(-1, 0):
+		return Input.is_key_pressed(KEY_LEFT) or Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_H)
+	if direction == Vector2i(1, 0):
+		return Input.is_key_pressed(KEY_RIGHT) or Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_L)
+	if direction == Vector2i(0, -1):
+		return Input.is_key_pressed(KEY_UP) or Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_K)
+	if direction == Vector2i(0, 1):
+		return Input.is_key_pressed(KEY_DOWN) or Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_J)
+	return false
+
+
 func _handle_escape() -> void:
 	match GameState.current_state:
 		GameState.Playing:
@@ -903,6 +1414,8 @@ func _handle_escape() -> void:
 func _make_enemy(enemy_type: String, cell: Vector2i) -> Dictionary:
 	var definition: Dictionary = ENEMY_TYPES.get(enemy_type, ENEMY_TYPES["slime"])
 	var hp := int(definition["hp"]) + maxi(0, current_level_index - 1)
+	var move_interval := float(definition.get("move_interval", 0.6))
+	var attack_interval := float(definition.get("attack_interval", 1.0))
 	return {
 		"type": enemy_type,
 		"name": definition["name"],
@@ -911,9 +1424,21 @@ func _make_enemy(enemy_type: String, cell: Vector2i) -> Dictionary:
 		"attack": int(definition["attack"]),
 		"score": int(definition["score"]),
 		"texture": definition["texture"],
+		"role": str(definition.get("role", "normal")),
 		"awareness": int(definition["awareness"]),
+		"move_interval": move_interval,
+		"attack_interval": attack_interval,
+		"phase_move_interval": float(definition.get("phase_move_interval", move_interval)),
+		"phase_attack_interval": float(definition.get("phase_attack_interval", attack_interval)),
+		"summon_on_half_hp": int(definition.get("summon_on_half_hp", 0)),
+		"phase_triggered": false,
+		"base_modulate": Color.WHITE,
+		"move_cooldown": rng.randf_range(0.05, move_interval),
+		"attack_cooldown": rng.randf_range(0.35, attack_interval),
 		"cell": cell,
 		"node": null,
+		"sprite": null,
+		"hp_fill": null,
 	}
 
 
@@ -929,6 +1454,22 @@ func _make_item(item_type: String, cell: Vector2i) -> Dictionary:
 	}
 
 
+func _make_chest(cell: Vector2i) -> Dictionary:
+	return {
+		"cell": cell,
+		"opened": false,
+		"node": null,
+	}
+
+
+func _make_fountain(cell: Vector2i) -> Dictionary:
+	return {
+		"cell": cell,
+		"used": false,
+		"node": null,
+	}
+
+
 func _make_enemy_node(enemy: Dictionary) -> Node2D:
 	var node := Node2D.new()
 	node.position = _cell_to_world(enemy["cell"])
@@ -939,6 +1480,23 @@ func _make_enemy_node(enemy: Dictionary) -> Node2D:
 	sprite.scale = Vector2.ONE * 2.0
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	node.add_child(sprite)
+	enemy["sprite"] = sprite
+
+	var hp_back := ColorRect.new()
+	hp_back.position = Vector2(-14, -24)
+	hp_back.size = Vector2(28, 4)
+	hp_back.color = Color(0.05, 0.06, 0.05, 0.88)
+	hp_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	node.add_child(hp_back)
+
+	var hp_fill := ColorRect.new()
+	hp_fill.position = Vector2(-13, -23)
+	hp_fill.size = Vector2(26, 2)
+	hp_fill.color = Color(0.88, 0.18, 0.16, 1.0)
+	hp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	node.add_child(hp_fill)
+	enemy["hp_fill"] = hp_fill
+	_update_enemy_health_bar(enemy)
 
 	return node
 
@@ -1042,6 +1600,46 @@ func _best_enemy_step(enemy: Dictionary) -> Vector2i:
 	return best_cells[rng.randi_range(0, best_cells.size() - 1)]
 
 
+func _find_spawn_cells_near(origin: Vector2i, count: int) -> Array[Vector2i]:
+	var candidates: Array[Vector2i] = [
+		Vector2i(1, 0),
+		Vector2i(-1, 0),
+		Vector2i(0, 1),
+		Vector2i(0, -1),
+		Vector2i(1, 1),
+		Vector2i(1, -1),
+		Vector2i(-1, 1),
+		Vector2i(-1, -1),
+		Vector2i(2, 0),
+		Vector2i(-2, 0),
+		Vector2i(0, 2),
+		Vector2i(0, -2),
+	]
+	candidates.shuffle()
+	var result: Array[Vector2i] = []
+	for offset in candidates:
+		var cell := origin + offset
+		if _can_spawn_enemy_at(cell) and not result.has(cell):
+			result.append(cell)
+			if result.size() >= count:
+				return result
+	return result
+
+
+func _can_spawn_enemy_at(cell: Vector2i) -> bool:
+	if not _is_inside(cell):
+		return false
+	if _tile_at(cell) == Tile.WALL:
+		return false
+	if cell == player_cell or cell == exit_cell:
+		return false
+	if _enemy_at(cell) != null:
+		return false
+	if _item_at(cell) != null or _chest_at(cell) != null or _fountain_at(cell) != null:
+		return false
+	return true
+
+
 func _can_enemy_enter(cell: Vector2i, moving_enemy: Dictionary) -> bool:
 	if not _is_inside(cell):
 		return false
@@ -1069,6 +1667,36 @@ func _item_at(cell: Vector2i) -> Variant:
 		if item["cell"] == cell:
 			return item
 	return null
+
+
+func _chest_at(cell: Vector2i) -> Variant:
+	for chest in chests:
+		if chest["cell"] == cell:
+			return chest
+	return null
+
+
+func _fountain_at(cell: Vector2i) -> Variant:
+	for fountain in fountains:
+		if fountain["cell"] == cell:
+			return fountain
+	return null
+
+
+func _count_unopened_chests() -> int:
+	var count := 0
+	for chest in chests:
+		if not bool(chest.get("opened", false)):
+			count += 1
+	return count
+
+
+func _count_unused_fountains() -> int:
+	var count := 0
+	for fountain in fountains:
+		if not bool(fountain.get("used", false)):
+			count += 1
+	return count
 
 
 func _tile_at(cell: Vector2i) -> int:
@@ -1112,6 +1740,39 @@ func _flash_node(node: Variant, color: Color) -> void:
 	var tween := create_tween()
 	tween.tween_property(node, "modulate", color, 0.04)
 	tween.tween_property(node, "modulate", Color.WHITE, 0.12)
+
+
+func _flash_enemy(enemy: Dictionary, color: Color) -> void:
+	var sprite: Variant = enemy.get("sprite")
+	if sprite == null or not is_instance_valid(sprite):
+		_flash_node(enemy.get("node"), color)
+		return
+	var base_color: Color = enemy.get("base_modulate", Color.WHITE)
+	var tween := create_tween()
+	tween.tween_property(sprite, "modulate", color, 0.04)
+	tween.tween_property(sprite, "modulate", base_color, 0.12)
+
+
+func _update_enemy_health_bar(enemy: Dictionary) -> void:
+	var hp_fill: Variant = enemy.get("hp_fill")
+	if hp_fill == null or not is_instance_valid(hp_fill):
+		return
+	var max_hp := maxf(float(enemy.get("max_hp", 1)), 1.0)
+	var ratio := clampf(float(enemy.get("hp", 0)) / max_hp, 0.0, 1.0)
+	hp_fill.size = Vector2(26.0 * ratio, 2)
+	hp_fill.color = Color(0.86, 0.18, 0.16, 1.0) if ratio <= 0.35 else Color(0.95, 0.55, 0.20, 1.0)
+
+
+func _pulse_exit() -> void:
+	if exit_node == null or not is_instance_valid(exit_node):
+		return
+	if exit_pulse_tween != null and exit_pulse_tween.is_valid():
+		exit_pulse_tween.kill()
+	exit_node.scale = Vector2.ONE * 2.0
+	exit_pulse_tween = create_tween()
+	exit_pulse_tween.set_loops()
+	exit_pulse_tween.tween_property(exit_node, "scale", Vector2.ONE * 2.22, 0.32).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	exit_pulse_tween.tween_property(exit_node, "scale", Vector2.ONE * 2.0, 0.36).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 
 
 func _clear_layer(layer: Node) -> void:

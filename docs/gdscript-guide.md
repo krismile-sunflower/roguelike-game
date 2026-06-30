@@ -10,8 +10,9 @@
 
 当前主循环使用 `_input(event)` 处理键盘：
 
-- 方向键 / WASD / HJKL 转为 `Vector2i` 方向。
-- Space 和 `.` 是等待。
+- 方向键 / WASD / HJKL 转为 `Vector2i` 方向，并由 `_process(delta)` 轮询实现按住连续移动。
+- Shift 调用 `_attempt_dash()`，向当前方向短冲刺最多 2 格。
+- Space 和 `.` 会清空当前移动方向，让玩家停下脚步重新观察。
 - Esc 根据当前状态暂停、继续或返回菜单。
 - R 重开当前层。
 
@@ -35,6 +36,7 @@
 - `map_layer`：地面和墙。
 - `decor_layer`：非阻挡装饰。
 - `item_layer`：药水、金币、装备。
+- `item_layer`：药水、金币、装备、宝箱和喷泉。
 - `actor_layer`：玩家、敌人、出口。
 - `fx_layer`：预留特效层。
 - `ui_layer`：HUD。
@@ -47,20 +49,39 @@
 - 下载或新增第三方资源后，必须更新 `assets/licenses/SOURCES.md`。
 - 像素素材的 `Sprite2D.texture_filter` 设为 `CanvasItem.TEXTURE_FILTER_NEAREST`。
 
-## 回合逻辑
+## 实时格子逻辑
 
-玩家行动入口集中在：
+玩家输入与移动入口集中在：
 
+- `_process(delta)`
+- `_tick_player_movement(delta)`
+- `_get_held_direction()`
 - `_attempt_player_step(direction)`
+- `_attempt_dash()`
+- `_handle_player_landing()`
 - `_wait_turn()`
 
 敌人行动集中在：
 
-- `_run_enemy_turns()`
+- `_tick_enemies(delta)`
+- `_run_single_enemy(enemy)`
 - `_best_enemy_step(enemy)`
 - `_enemy_attack_player(enemy)`
+- `_trigger_boss_phase(enemy)`
 
-避免让敌人在动画 tween 完成后再改变逻辑坐标；逻辑坐标应当先更新，动画只负责表现。
+互动物集中在：
+
+- `_open_chest_at(cell)`
+- `_use_fountain_at(cell)`
+- `_chest_at(cell)`
+- `_fountain_at(cell)`
+
+楼层祝福集中在：
+
+- `_show_reward_choices()`
+- `_apply_reward(reward)`
+
+避免让玩家或敌人在动画 tween 完成后再改变逻辑坐标；逻辑坐标应当先更新，动画只负责表现。
 
 ## 存档
 
