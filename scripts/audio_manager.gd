@@ -10,6 +10,7 @@ const SOUND_PATHS := {
 	"attack": "res://assets/audio/kenney_interface-sounds/Audio/scratch_002.ogg",
 	"blocked": "res://assets/audio/kenney_interface-sounds/Audio/error_002.ogg",
 	"coin": "res://assets/audio/kenney_interface-sounds/Audio/confirmation_002.ogg",
+	"dash": "res://assets/audio/kenney_interface-sounds/Audio/drop_003.ogg",
 	"death": "res://assets/audio/kenney_interface-sounds/Audio/error_008.ogg",
 	"enemy_down": "res://assets/audio/kenney_interface-sounds/Audio/drop_004.ogg",
 	"gear": "res://assets/audio/kenney_interface-sounds/Audio/open_004.ogg",

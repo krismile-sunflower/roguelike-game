@@ -38,8 +38,8 @@ Only import files after confirming their license on the source page.
   - `Tiles/tile_0045.png` as the level exit
   - `Tiles/tile_0085.png` as the player
   - `Tiles/tile_0096.png`, `tile_0110.png`, `tile_0112.png`, `tile_0120.png`, `tile_0122.png`, `tile_0123.png` as enemies
-  - `Tiles/tile_0102.png`, `tile_0103.png`, `tile_0113.png`, `tile_0114.png` as pickups and gear
-  - `Tiles/tile_0029.png`, `tile_0053.png`, `tile_0079.png` as dungeon decor
+  - `Tiles/tile_0101.png`, `tile_0102.png`, `tile_0103.png`, `tile_0113.png`, `tile_0114.png` as pickups and gear
+  - `Tiles/tile_0029.png`, `tile_0041.png`, `tile_0053.png`, `tile_0079.png`, `tile_0090.png` as dungeon decor and interactables
 
 - Asset pack: Kenney Interface Sounds (1.0)
 - Source URL: https://kenney.nl/assets/interface-sounds

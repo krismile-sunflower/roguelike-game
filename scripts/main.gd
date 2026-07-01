@@ -29,6 +29,8 @@ const DASH_COOLDOWN_MAX := 1.4
 const DASH_TWEEN_DURATION := 0.06
 const MIN_PLAYER_STEP_INTERVAL := 0.08
 const FOUNTAIN_HEAL_AMOUNT := 2
+const TRAP_DAMAGE := 1
+const EMBER_RESONANCE_COUNT := 3
 
 const DIRECTIONS := [
 	Vector2i(1, 0),
@@ -57,6 +59,9 @@ const TEXTURE_PATHS := {
 	"shield": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0102.png",
 	"chest": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0079.png",
 	"fountain": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0032.png",
+	"trap": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0041.png",
+	"ember": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0101.png",
+	"chest_open": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0090.png",
 	"rubble": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0053.png",
 	"torch": "res://assets/art/kenney_tiny-dungeon/Tiles/tile_0029.png",
 }
@@ -90,10 +95,12 @@ const ENEMY_TYPES := {
 		"attack": 2,
 		"score": 35,
 		"texture": "cultist",
-		"role": "hunter",
+		"role": "caster",
 		"awareness": 6,
 		"move_interval": 0.58,
 		"attack_interval": 0.95,
+		"ranged_range": 5,
+		"ranged_damage": 1,
 	},
 	"ghost": {
 		"name": "游魂",
@@ -147,6 +154,8 @@ const LEVEL_DEFS := [
 		"gear": ["sword"],
 		"chests": 0,
 		"fountains": 0,
+		"traps": 0,
+		"embers": 0,
 		"reward_count": 3,
 		"theme_color": Color(0.38, 0.47, 0.34, 1.0),
 		"boss_rules": {},
@@ -165,6 +174,8 @@ const LEVEL_DEFS := [
 		"gear": [],
 		"chests": 1,
 		"fountains": 0,
+		"traps": 2,
+		"embers": 2,
 		"reward_count": 3,
 		"theme_color": Color(0.25, 0.42, 0.48, 1.0),
 		"boss_rules": {},
@@ -183,6 +194,8 @@ const LEVEL_DEFS := [
 		"gear": ["shield"],
 		"chests": 1,
 		"fountains": 1,
+		"traps": 4,
+		"embers": 3,
 		"reward_count": 3,
 		"theme_color": Color(0.47, 0.40, 0.35, 1.0),
 		"boss_rules": {},
@@ -201,6 +214,8 @@ const LEVEL_DEFS := [
 		"gear": [],
 		"chests": 1,
 		"fountains": 0,
+		"traps": 5,
+		"embers": 3,
 		"reward_count": 3,
 		"theme_color": Color(0.50, 0.29, 0.26, 1.0),
 		"boss_rules": {},
@@ -219,6 +234,8 @@ const LEVEL_DEFS := [
 		"gear": ["sword", "shield"],
 		"chests": 2,
 		"fountains": 1,
+		"traps": 4,
+		"embers": 4,
 		"reward_count": 0,
 		"theme_color": Color(0.38, 0.30, 0.50, 1.0),
 		"boss_rules": {"summon_on_half_hp": 2},
@@ -281,6 +298,7 @@ var dash_cooldown := 0.0
 var dash_cooldown_max := DASH_COOLDOWN_MAX
 var potion_heal_amount := 3
 var kill_heal_chance := 0.0
+var ember_shards := 0
 var selected_rewards: Array[String] = []
 var reward_choices: Array[Dictionary] = []
 var enemy_ai_enabled := false
@@ -292,6 +310,7 @@ var enemies: Array[Dictionary] = []
 var items: Array[Dictionary] = []
 var chests: Array[Dictionary] = []
 var fountains: Array[Dictionary] = []
+var traps: Array[Dictionary] = []
 var log_lines: Array[String] = []
 
 var background_layer: CanvasLayer
@@ -312,7 +331,9 @@ var score_label: Label
 var depth_label: Label
 var dash_label: Label
 var enemies_label: Label
+var threat_label: Label
 var status_label: Label
+var minimap_root: Control
 var log_label: Label
 var continue_button: Button
 var menu_layer: CanvasLayer
@@ -437,6 +458,7 @@ func _reset_run_modifiers() -> void:
 	dash_cooldown_max = DASH_COOLDOWN_MAX
 	potion_heal_amount = 3
 	kill_heal_chance = 0.0
+	ember_shards = 0
 	selected_rewards.clear()
 	reward_choices.clear()
 
@@ -593,16 +615,22 @@ func _build_hud() -> void:
 	panel.add_theme_stylebox_override("panel", _panel_style(Color(0.105, 0.125, 0.115, 0.96), Color(0.35, 0.46, 0.34, 0.9)))
 	ui_layer.add_child(panel)
 
-	title_label = _make_label(panel, Vector2(18, 16), Vector2(200, 50), "", 22, Color(0.96, 0.92, 0.74, 1.0))
-	depth_label = _make_label(panel, Vector2(18, 72), Vector2(200, 24), "", 16, Color(0.98, 0.75, 0.42, 1.0))
-	hp_label = _make_label(panel, Vector2(18, 110), Vector2(200, 26), "", 18, Color(0.95, 0.46, 0.36, 1.0))
-	attack_label = _make_label(panel, Vector2(18, 140), Vector2(200, 24), "", 16, Color(0.78, 0.86, 0.98, 1.0))
-	dash_label = _make_label(panel, Vector2(18, 170), Vector2(200, 24), "", 16, Color(0.78, 0.92, 0.92, 1.0))
-	score_label = _make_label(panel, Vector2(18, 200), Vector2(200, 24), "", 16, Color(0.94, 0.82, 0.45, 1.0))
-	enemies_label = _make_label(panel, Vector2(18, 230), Vector2(200, 24), "", 16, Color(0.83, 0.74, 0.96, 1.0))
-	goal_label = _make_label(panel, Vector2(18, 274), Vector2(200, 76), "", 15, Color(0.78, 0.84, 0.74, 1.0))
-	status_label = _make_label(panel, Vector2(18, 366), Vector2(200, 66), "", 15, Color(0.78, 0.86, 0.80, 1.0))
-	log_label = _make_label(panel, Vector2(18, 452), Vector2(200, 160), "", 14, Color(0.68, 0.74, 0.70, 1.0))
+	title_label = _make_label(panel, Vector2(18, 14), Vector2(200, 46), "", 21, Color(0.96, 0.92, 0.74, 1.0))
+	depth_label = _make_label(panel, Vector2(18, 66), Vector2(200, 22), "", 15, Color(0.98, 0.75, 0.42, 1.0))
+	hp_label = _make_label(panel, Vector2(18, 96), Vector2(200, 24), "", 17, Color(0.95, 0.46, 0.36, 1.0))
+	attack_label = _make_label(panel, Vector2(18, 122), Vector2(200, 22), "", 15, Color(0.78, 0.86, 0.98, 1.0))
+	dash_label = _make_label(panel, Vector2(18, 146), Vector2(200, 22), "", 15, Color(0.78, 0.92, 0.92, 1.0))
+	score_label = _make_label(panel, Vector2(18, 170), Vector2(200, 22), "", 15, Color(0.94, 0.82, 0.45, 1.0))
+	enemies_label = _make_label(panel, Vector2(18, 194), Vector2(200, 22), "", 15, Color(0.83, 0.74, 0.96, 1.0))
+	threat_label = _make_label(panel, Vector2(18, 222), Vector2(200, 48), "", 14, Color(0.88, 0.78, 0.64, 1.0))
+	goal_label = _make_label(panel, Vector2(18, 280), Vector2(200, 54), "", 14, Color(0.78, 0.84, 0.74, 1.0))
+	status_label = _make_label(panel, Vector2(18, 344), Vector2(200, 48), "", 14, Color(0.78, 0.86, 0.80, 1.0))
+	_make_label(panel, Vector2(18, 406), Vector2(200, 20), "小地图", 13, Color(0.70, 0.78, 0.68, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
+	minimap_root = Control.new()
+	minimap_root.position = Vector2(18, 430)
+	minimap_root.size = Vector2(200, 82)
+	panel.add_child(minimap_root)
+	log_label = _make_label(panel, Vector2(18, 526), Vector2(200, 88), "", 13, Color(0.68, 0.74, 0.70, 1.0))
 
 	var hint := _make_label(panel, Vector2(18, 622), Vector2(200, 34), "Shift 冲刺  |  Esc 暂停  |  R 重开", 12, Color(0.55, 0.63, 0.58, 1.0))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -638,7 +666,7 @@ func _build_instructions() -> void:
 
 	var panel := _make_center_panel(instructions_layer, Vector2(690, 470))
 	_make_label(panel, Vector2(42, 30), Vector2(606, 44), "探索指南", 32, Color(0.98, 0.88, 0.58, 1.0), HORIZONTAL_ALIGNMENT_CENTER)
-	var body := "方向键 / WASD / HJKL：按住连续移动；撞向敌人即可攻击。\n\nShift：向当前方向短冲刺，最多 2 格，不能穿墙或穿过敌人。\n\n宝箱会给金币、治疗或临时强化；喷泉每层只能使用一次。\n\n敌人会按自己的节奏持续行动，停在原地也不会安全。\n\n清掉本层敌人后，出口会点亮。非最终层会先选择 1 个楼层祝福。"
+	var body := "方向键 / WASD / HJKL：按住连续移动；撞向敌人即可攻击。\n\nShift：向当前方向短冲刺，最多 2 格，不能穿墙或穿过敌人，也会触发路上的陷阱。\n\n宝箱会给金币、治疗或临时强化；喷泉每层只能使用一次。\n\n烛影侍从会沿直线施法，墙体和其他敌人可以挡住视线。\n\n余烬碎片每收集 3 个会产生一次共鸣。清掉敌人后出口会点亮。"
 	_make_label(panel, Vector2(60, 96), Vector2(570, 260), body, 18, Color(0.75, 0.84, 0.76, 1.0))
 	var back_button := _make_button(panel, Vector2(236, 382), Vector2(218, 44), "返回主菜单")
 	back_button.pressed.connect(hide_instructions)
@@ -754,6 +782,7 @@ func _populate_level() -> void:
 	items.clear()
 	chests.clear()
 	fountains.clear()
+	traps.clear()
 
 	var reserved: Array[Vector2i] = [player_cell, exit_cell]
 	var level_def: Dictionary = LEVEL_DEFS[current_level_index]
@@ -776,6 +805,11 @@ func _populate_level() -> void:
 		reserved.append(coin_cell)
 		items.append(_make_item("coin", coin_cell))
 
+	for _i in range(int(level_def.get("embers", 0))):
+		var ember_cell := _find_empty_floor_cell(reserved, true)
+		reserved.append(ember_cell)
+		items.append(_make_item("ember", ember_cell))
+
 	for gear in level_def.get("gear", []):
 		var gear_cell := _find_empty_floor_cell(reserved, true)
 		reserved.append(gear_cell)
@@ -790,6 +824,11 @@ func _populate_level() -> void:
 		var fountain_cell := _find_empty_floor_cell(reserved, true)
 		reserved.append(fountain_cell)
 		fountains.append(_make_fountain(fountain_cell))
+
+	for _i in range(int(level_def.get("traps", 0))):
+		var trap_cell := _find_empty_floor_cell(reserved, true)
+		reserved.append(trap_cell)
+		traps.append(_make_trap(trap_cell))
 
 
 func _render_level() -> void:
@@ -834,6 +873,11 @@ func _render_level() -> void:
 		fountain_node.modulate = Color(0.72, 1.0, 0.92, 1.0)
 		fountain["node"] = fountain_node
 
+	for trap in traps:
+		var trap_node := _make_tile_sprite("trap", trap["cell"], item_layer, 1)
+		trap_node.modulate = Color(1.0, 0.50, 0.38, 0.82)
+		trap["node"] = trap_node
+
 	player_node = Node2D.new()
 	player_node.position = _cell_to_world(player_cell)
 	actor_layer.add_child(player_node)
@@ -861,6 +905,8 @@ func _add_decor() -> void:
 		reserved.append(chest["cell"])
 	for fountain in fountains:
 		reserved.append(fountain["cell"])
+	for trap in traps:
+		reserved.append(trap["cell"])
 
 	for _i in range(decor_count):
 		var cell := _find_empty_floor_cell(reserved, false)
@@ -925,6 +971,11 @@ func _attempt_dash() -> void:
 			break
 		player_cell = candidate
 		moved += 1
+		if _trigger_trap_at(player_cell):
+			_tween_node_to_cell(player_node, player_cell, DASH_TWEEN_DURATION)
+			dash_cooldown = dash_cooldown_max
+			_refresh_hud()
+			return
 		_collect_item_at(player_cell)
 		_open_chest_at(player_cell)
 		_use_fountain_at(player_cell)
@@ -941,7 +992,7 @@ func _attempt_dash() -> void:
 		player_step_timer = PLAYER_BLOCKED_INTERVAL
 		return
 
-	AudioManager.play_sound("drop")
+	AudioManager.play_sound("dash")
 	_tween_node_to_cell(player_node, player_cell, DASH_TWEEN_DURATION)
 	dash_cooldown = dash_cooldown_max
 	player_step_timer = player_step_interval
@@ -951,6 +1002,9 @@ func _attempt_dash() -> void:
 
 
 func _handle_player_landing() -> bool:
+	if _trigger_trap_at(player_cell):
+		return true
+
 	_collect_item_at(player_cell)
 	_open_chest_at(player_cell)
 	_use_fountain_at(player_cell)
@@ -1032,6 +1086,12 @@ func _tick_enemies(delta: float) -> void:
 				enemy["attack_cooldown"] = float(enemy.get("attack_interval", 1.0))
 			continue
 
+		if _can_enemy_cast(enemy, distance):
+			_enemy_ranged_attack_player(enemy)
+			enemy["attack_cooldown"] = float(enemy.get("attack_interval", 1.0))
+			enemy["move_cooldown"] = maxf(float(enemy.get("move_cooldown", 0.0)), 0.22)
+			continue
+
 		if float(enemy.get("move_cooldown", 0.0)) <= 0.0:
 			_run_single_enemy(enemy)
 
@@ -1064,6 +1124,33 @@ func _enemy_attack_player(enemy: Dictionary) -> void:
 	ParticleManager.play_hurt_effect(_cell_to_world(player_cell))
 	_flash_node(player_node, Color(1.0, 0.36, 0.28, 1.0))
 	_add_log(str(enemy["name"]) + " 攻击你，造成 " + str(damage) + " 点伤害。")
+
+	if player_hp <= 0:
+		_game_over()
+
+
+func _can_enemy_cast(enemy: Dictionary, distance: int) -> bool:
+	if str(enemy.get("role", "")) != "caster":
+		return false
+	if float(enemy.get("attack_cooldown", 0.0)) > 0.0:
+		return false
+	if distance > int(enemy.get("ranged_range", 5)):
+		return false
+	return _has_line_of_sight(enemy["cell"], player_cell)
+
+
+func _enemy_ranged_attack_player(enemy: Dictionary) -> void:
+	var damage := int(enemy.get("ranged_damage", 1))
+	player_hp = maxi(player_hp - damage, 0)
+	GameData.player_health = player_hp
+	GameData.health_changed.emit(player_hp)
+	AudioManager.play_sound("hurt")
+	_draw_cast_line(enemy["cell"], player_cell)
+	ParticleManager.play_hurt_effect(_cell_to_world(player_cell))
+	_flash_enemy(enemy, Color(1.0, 0.78, 0.34, 1.0))
+	_flash_node(player_node, Color(1.0, 0.36, 0.28, 1.0))
+	_add_log(str(enemy["name"]) + "沿走廊灼烧你，造成 " + str(damage) + " 点伤害。")
+	_refresh_hud()
 
 	if player_hp <= 0:
 		_game_over()
@@ -1126,6 +1213,19 @@ func _collect_item_at(cell: Vector2i) -> void:
 			GameData.add_score(45)
 			_add_log("盾牌扣上手臂，最大生命 +2。")
 			AudioManager.play_sound("gear")
+		"ember":
+			ember_shards += 1
+			GameData.add_score(35 + current_level_index * 5)
+			_add_log("拾起余烬碎片（" + str(ember_shards) + "）。")
+			AudioManager.play_sound("coin")
+			if ember_shards % EMBER_RESONANCE_COUNT == 0:
+				var before := player_hp
+				player_hp = mini(player_hp + 1, player_max_hp)
+				GameData.player_health = player_hp
+				GameData.health_changed.emit(player_hp)
+				dash_cooldown = maxf(dash_cooldown - 0.35, 0.0)
+				_add_log("余烬共鸣，恢复 " + str(player_hp - before) + " 点生命并冷却冲刺。")
+				ParticleManager.play_powerup_appear_effect(_cell_to_world(cell))
 
 	ParticleManager.play_collect_effect(_cell_to_world(cell))
 	var node: Variant = item.get("node")
@@ -1142,6 +1242,9 @@ func _open_chest_at(cell: Vector2i) -> bool:
 	chest["opened"] = true
 	var node: Variant = chest.get("node")
 	if node != null and is_instance_valid(node):
+		var chest_sprite := node as Sprite2D
+		if chest_sprite != null:
+			chest_sprite.texture = textures.get("chest_open")
 		node.modulate = Color(0.54, 0.46, 0.34, 0.76)
 	ParticleManager.play_collect_effect(_cell_to_world(cell))
 	AudioManager.play_sound("gear")
@@ -1182,6 +1285,32 @@ func _use_fountain_at(cell: Vector2i) -> bool:
 	_add_log("你饮下冷泉，恢复 " + str(player_hp - before) + " 点生命。")
 	_refresh_hud()
 	return true
+
+
+func _trigger_trap_at(cell: Vector2i) -> bool:
+	var trap: Variant = _trap_at(cell)
+	if trap == null or bool(trap.get("triggered", false)):
+		return false
+
+	trap["triggered"] = true
+	var node: Variant = trap.get("node")
+	if node != null and is_instance_valid(node):
+		node.modulate = Color(0.38, 0.28, 0.26, 0.55)
+		node.scale = Vector2.ONE * 1.84
+
+	player_hp = maxi(player_hp - TRAP_DAMAGE, 0)
+	GameData.player_health = player_hp
+	GameData.health_changed.emit(player_hp)
+	AudioManager.play_sound("hurt")
+	ParticleManager.play_hurt_effect(_cell_to_world(cell))
+	_flash_node(player_node, Color(1.0, 0.32, 0.22, 1.0))
+	_add_log("尖刺机关弹起，造成 " + str(TRAP_DAMAGE) + " 点伤害。")
+	_refresh_hud()
+
+	if player_hp <= 0:
+		_game_over()
+		return true
+	return false
 
 
 func _complete_current_level() -> void:
@@ -1316,17 +1445,22 @@ func _refresh_hud() -> void:
 	dash_label.add_theme_color_override("font_color", Color(0.64, 0.96, 0.86, 1.0) if dash_cooldown <= 0.0 else Color(0.62, 0.72, 0.78, 1.0))
 	score_label.text = "得分 " + str(GameData.score)
 	enemies_label.text = "敌人 " + str(enemies.size())
+	threat_label.text = "威胁摘要\n陷阱 " + str(_count_armed_traps()) + "  宝箱 " + str(_count_unopened_chests()) + "  喷泉 " + str(_count_unused_fountains()) + "\n余烬 " + str(ember_shards)
 	goal_label.text = "目标\n" + str(level_def["goal"])
 	var unopened_chests := _count_unopened_chests()
 	var unused_fountains := _count_unused_fountains()
+	var armed_traps := _count_armed_traps()
 	var status_text := "出口已开启，踩上去继续。" if exit_open else "清理敌人开启出口。"
 	if unopened_chests > 0:
 		status_text += "\n宝箱 " + str(unopened_chests)
 	if unused_fountains > 0:
 		status_text += "  喷泉 " + str(unused_fountains)
+	if armed_traps > 0:
+		status_text += "  陷阱 " + str(armed_traps)
 	status_label.text = status_text
 	log_label.text = "\n".join(log_lines)
 	_refresh_exit()
+	_refresh_minimap()
 
 
 func _refresh_exit() -> void:
@@ -1342,9 +1476,74 @@ func _refresh_exit() -> void:
 			exit_node.scale = Vector2.ONE * 2.0
 
 
+func _refresh_minimap() -> void:
+	if minimap_root == null:
+		return
+
+	for child in minimap_root.get_children():
+		child.queue_free()
+
+	var tile_px := 4.0
+	var map_pixel_size := Vector2(GRID_WIDTH * tile_px, GRID_HEIGHT * tile_px)
+	var offset := Vector2((minimap_root.size.x - map_pixel_size.x) * 0.5, 4.0)
+
+	var backing := ColorRect.new()
+	backing.position = offset - Vector2(4, 4)
+	backing.size = map_pixel_size + Vector2(8, 8)
+	backing.color = Color(0.045, 0.055, 0.052, 0.95)
+	backing.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	minimap_root.add_child(backing)
+
+	for y in range(GRID_HEIGHT):
+		for x in range(GRID_WIDTH):
+			var cell := Vector2i(x, y)
+			if _tile_at(cell) == Tile.FLOOR:
+				_add_minimap_rect(cell, Color(0.24, 0.30, 0.26, 1.0), tile_px, offset)
+
+	for trap in traps:
+		if not bool(trap.get("triggered", false)):
+			_add_minimap_rect(trap["cell"], Color(0.92, 0.28, 0.20, 1.0), tile_px, offset, 0.82)
+
+	for item in items:
+		var item_type := str(item.get("type", ""))
+		var item_color := Color(0.94, 0.78, 0.35, 1.0)
+		if item_type == "potion":
+			item_color = Color(0.54, 0.92, 0.72, 1.0)
+		elif item_type == "ember":
+			item_color = Color(1.0, 0.62, 0.25, 1.0)
+		_add_minimap_rect(item["cell"], item_color, tile_px, offset, 0.82)
+
+	for chest in chests:
+		if not bool(chest.get("opened", false)):
+			_add_minimap_rect(chest["cell"], Color(0.86, 0.60, 0.32, 1.0), tile_px, offset, 0.9)
+
+	for fountain in fountains:
+		if not bool(fountain.get("used", false)):
+			_add_minimap_rect(fountain["cell"], Color(0.45, 0.95, 0.88, 1.0), tile_px, offset, 0.9)
+
+	_add_minimap_rect(exit_cell, Color(1.0, 0.88, 0.32, 1.0) if exit_open else Color(0.50, 0.56, 0.58, 1.0), tile_px, offset, 1.12)
+
+	for enemy in enemies:
+		_add_minimap_rect(enemy["cell"], Color(0.92, 0.24, 0.20, 1.0), tile_px, offset, 0.92)
+
+	_add_minimap_rect(player_cell, Color(1.0, 0.95, 0.46, 1.0), tile_px, offset, 1.25)
+
+
+func _add_minimap_rect(cell: Vector2i, color: Color, tile_px: float, offset: Vector2, scale_value: float = 1.0) -> void:
+	if minimap_root == null:
+		return
+	var rect := ColorRect.new()
+	var inset := tile_px * (1.0 - scale_value) * 0.5
+	rect.position = offset + Vector2(cell.x * tile_px + inset, cell.y * tile_px + inset)
+	rect.size = Vector2(tile_px * scale_value, tile_px * scale_value)
+	rect.color = color
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	minimap_root.add_child(rect)
+
+
 func _add_log(message: String) -> void:
 	log_lines.push_front(message)
-	while log_lines.size() > 6:
+	while log_lines.size() > 5:
 		log_lines.pop_back()
 	if log_label != null:
 		log_label.text = "\n".join(log_lines)
@@ -1430,6 +1629,8 @@ func _make_enemy(enemy_type: String, cell: Vector2i) -> Dictionary:
 		"attack_interval": attack_interval,
 		"phase_move_interval": float(definition.get("phase_move_interval", move_interval)),
 		"phase_attack_interval": float(definition.get("phase_attack_interval", attack_interval)),
+		"ranged_range": int(definition.get("ranged_range", 0)),
+		"ranged_damage": int(definition.get("ranged_damage", 0)),
 		"summon_on_half_hp": int(definition.get("summon_on_half_hp", 0)),
 		"phase_triggered": false,
 		"base_modulate": Color.WHITE,
@@ -1466,6 +1667,14 @@ func _make_fountain(cell: Vector2i) -> Dictionary:
 	return {
 		"cell": cell,
 		"used": false,
+		"node": null,
+	}
+
+
+func _make_trap(cell: Vector2i) -> Dictionary:
+	return {
+		"cell": cell,
+		"triggered": false,
 		"node": null,
 	}
 
@@ -1626,6 +1835,48 @@ func _find_spawn_cells_near(origin: Vector2i, count: int) -> Array[Vector2i]:
 	return result
 
 
+func _has_line_of_sight(from_cell: Vector2i, to_cell: Vector2i) -> bool:
+	var step := Vector2i.ZERO
+	if from_cell.x == to_cell.x:
+		step.y = 1 if to_cell.y > from_cell.y else -1
+	elif from_cell.y == to_cell.y:
+		step.x = 1 if to_cell.x > from_cell.x else -1
+	else:
+		return false
+
+	var cursor := from_cell + step
+	while cursor != to_cell:
+		if _tile_at(cursor) == Tile.WALL:
+			return false
+		if _enemy_at(cursor) != null:
+			return false
+		cursor += step
+
+	return true
+
+
+func _draw_cast_line(from_cell: Vector2i, to_cell: Vector2i) -> void:
+	if fx_layer == null:
+		return
+
+	var from_position := _cell_to_world(from_cell)
+	var to_position := _cell_to_world(to_cell)
+	var beam := ColorRect.new()
+	beam.color = Color(1.0, 0.54, 0.20, 0.74)
+	beam.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if from_cell.x == to_cell.x:
+		beam.position = Vector2(from_position.x - 3.0, minf(from_position.y, to_position.y))
+		beam.size = Vector2(6.0, absf(to_position.y - from_position.y))
+	else:
+		beam.position = Vector2(minf(from_position.x, to_position.x), from_position.y - 3.0)
+		beam.size = Vector2(absf(to_position.x - from_position.x), 6.0)
+	fx_layer.add_child(beam)
+
+	var tween := create_tween()
+	tween.tween_property(beam, "modulate", Color(1, 1, 1, 0), 0.18).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.finished.connect(beam.queue_free)
+
+
 func _can_spawn_enemy_at(cell: Vector2i) -> bool:
 	if not _is_inside(cell):
 		return false
@@ -1635,7 +1886,7 @@ func _can_spawn_enemy_at(cell: Vector2i) -> bool:
 		return false
 	if _enemy_at(cell) != null:
 		return false
-	if _item_at(cell) != null or _chest_at(cell) != null or _fountain_at(cell) != null:
+	if _item_at(cell) != null or _chest_at(cell) != null or _fountain_at(cell) != null or _trap_at(cell) != null:
 		return false
 	return true
 
@@ -1683,6 +1934,13 @@ func _fountain_at(cell: Vector2i) -> Variant:
 	return null
 
 
+func _trap_at(cell: Vector2i) -> Variant:
+	for trap in traps:
+		if trap["cell"] == cell:
+			return trap
+	return null
+
+
 func _count_unopened_chests() -> int:
 	var count := 0
 	for chest in chests:
@@ -1695,6 +1953,14 @@ func _count_unused_fountains() -> int:
 	var count := 0
 	for fountain in fountains:
 		if not bool(fountain.get("used", false)):
+			count += 1
+	return count
+
+
+func _count_armed_traps() -> int:
+	var count := 0
+	for trap in traps:
+		if not bool(trap.get("triggered", false)):
 			count += 1
 	return count
 
